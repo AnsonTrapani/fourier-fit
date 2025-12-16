@@ -1,3 +1,5 @@
+use app::*;
+
 fn main() {
-    println!("Hello, world!");
+    let app = App::new();
 }
