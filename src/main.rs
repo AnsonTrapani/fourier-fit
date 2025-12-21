@@ -2,8 +2,12 @@ use iced::{
     widget::{button, column, pick_list, row, scrollable, text, text_input},
     Alignment, Element, Length, Theme,
 };
-
-use fourier_fit::{App, FilterType, filters::cutoff_period_to_nyquist}; // <-- replace with your crate name
+use iced::widget::Canvas;
+use iced::widget::canvas::{self, Cache, Geometry, Path, Stroke, Fill, Text};
+use iced::{Color, Point, Rectangle, Renderer, Size};
+use iced::mouse;
+use num_complex::Complex;
+use fourier_fit::{App, FilterType, filters::cutoff_period_to_nyquist};
 
 pub fn main() -> iced::Result {
     iced::application(Gui::default, Gui::update, Gui::view)
@@ -38,6 +42,7 @@ struct Gui {
     error: Option<String>,
     zeros_out: String,
     poles_out: String,
+    plot_cache: Cache,
 }
 
 impl Gui {
@@ -48,13 +53,14 @@ impl Gui {
 
         Self {
             app,
-            cutoff_s: "0.25".into(),
+            cutoff_s: "4.2".into(),
             order_s: "4".into(),
             ripple_s: "5".into(),
             attenuation_s: "40".into(),
             error: None,
             zeros_out: String::new(),
             poles_out: String::new(),
+            plot_cache: Cache::new(),
         }
     }
 
@@ -77,6 +83,7 @@ impl Gui {
                 self.error = None;
                 self.zeros_out.clear();
                 self.poles_out.clear();
+                self.plot_cache.clear();
             }
 
             Message::Calculate => {
@@ -144,6 +151,7 @@ impl Gui {
                         .join("\n"),
                     _ => "(none)".into(),
                 };
+                self.plot_cache.clear();
             }
         }
     }
@@ -219,9 +227,97 @@ impl Gui {
         ]
         .spacing(16);
 
-        column![controls, output]
+        let pz = Canvas::new(PzPlotView {
+        zeros: self.app.zeros.as_deref(),
+        poles: self.app.poles.as_deref(),
+        cache: &self.plot_cache,
+            })
+            .width(Length::Fill)
+            .height(300);
+
+        column![controls, output, pz]
             .padding(16)
             .spacing(16)
             .into()
+            }
+}
+
+struct PzPlotView<'a> {
+    zeros: Option<&'a [Complex<f64>]>,
+    poles: Option<&'a [Complex<f64>]>,
+    cache: &'a Cache,
+}
+
+impl<'a> canvas::Program<Message> for PzPlotView<'a> {
+    type State = ();
+
+    fn draw(
+        &self,
+        _state: &Self::State,
+        renderer: &Renderer,
+        _theme: &Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
+    ) -> Vec<Geometry> {
+        let geom = self.cache.draw(renderer, bounds.size(), |frame| {
+            let w = bounds.width as f32;
+            let h = bounds.height as f32;
+            let s = w.min(h);
+            let center = Point::new(w * 0.5, h * 0.5);
+
+            let r = s * 0.42;
+            let to_px = |z: Complex<f64>| -> Point {
+                Point::new(center.x + (z.re as f32) * r, center.y - (z.im as f32) * r)
+            };
+
+            // axes
+            frame.stroke(
+                &Path::line(Point::new(0.0, center.y), Point::new(w, center.y)),
+                Stroke { width: 1.0, ..Stroke::default() },
+            );
+            frame.stroke(
+                &Path::line(Point::new(center.x, 0.0), Point::new(center.x, h)),
+                Stroke { width: 1.0, ..Stroke::default() },
+            );
+
+            // unit circle
+            frame.stroke(
+                &Path::circle(center, r),
+                Stroke { width: 1.0, ..Stroke::default() },
+            );
+
+            // zeros: draw small circles
+            if let Some(zs) = self.zeros {
+                for &z in zs {
+                    if z.re.is_finite() && z.im.is_finite() {
+                        let p = to_px(z);
+                        frame.stroke(
+                            &Path::circle(p, 5.0),
+                            Stroke { width: 2.0, ..Stroke::default() },
+                        );
+                    }
+                }
+            }
+
+            // poles: draw X
+            if let Some(ps) = self.poles {
+                for &p0 in ps {
+                    if p0.re.is_finite() && p0.im.is_finite() {
+                        let p = to_px(p0);
+                        let d = 5.0;
+                        frame.stroke(
+                            &Path::line(Point::new(p.x - d, p.y - d), Point::new(p.x + d, p.y + d)),
+                            Stroke { width: 2.0, ..Stroke::default() },
+                        );
+                        frame.stroke(
+                            &Path::line(Point::new(p.x - d, p.y + d), Point::new(p.x + d, p.y - d)),
+                            Stroke { width: 2.0, ..Stroke::default() },
+                        );
+                    }
+                }
+            }
+        });
+
+        vec![geom]
     }
 }

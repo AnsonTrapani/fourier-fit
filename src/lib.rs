@@ -9,8 +9,6 @@ use num_complex::Complex;
 const DEFAULT_ORDER: usize = 4;
 const DEFAULT_RIPPLE: f64 = 5.;
 const DEFAULT_ATTENUATION: f64 = 40.;
-const EPSILON: f64 = 0.001;
-const MAX_ITERATIONS: u32 = 10;
 
 use std::fmt;
 
