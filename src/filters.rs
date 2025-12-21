@@ -4,7 +4,7 @@ pub const NYQUIST_RATE: f64 = 0.5; // In cycles per sample
 const NYQUIST_PERIOD: f64 = 1. / NYQUIST_RATE;
 
 pub struct FilterData {
-    filtered_data: Vec<f64>,
+    pub filtered_data: Vec<f64>,
     pub b: Vec<f64>,
     pub a: Vec<f64>,
 }
@@ -38,10 +38,13 @@ pub fn butterworth_filter(
         Ok(v) => v,
         Err(_) => return Err(String::from("Butterworth filter construction failed")),
     };
+    // println!("{}", cutoff_freq);
+    // println!("{:?}", data);
     let filtered = match filter::filtfilt(&num, &den, data) {
         Ok(f) => f,
         Err(_) => return Err(String::from("Butterworth filtering failed")),
     };
+    // println!("{:?}", filtered);
     Ok(FilterData {
         filtered_data: filtered,
         b: num,

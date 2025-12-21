@@ -44,6 +44,7 @@ struct Gui {
     zeros_out: String,
     poles_out: String,
     plot_cache: Cache,
+    ts_cache: Cache,
 }
 
 impl Gui {
@@ -62,6 +63,7 @@ impl Gui {
             zeros_out: String::new(),
             poles_out: String::new(),
             plot_cache: Cache::new(),
+            ts_cache: Cache::new(),
         }
     }
 
@@ -85,6 +87,7 @@ impl Gui {
                 self.zeros_out.clear();
                 self.poles_out.clear();
                 self.plot_cache.clear();
+                self.ts_cache.clear();
             }
 
             Message::Calculate => {
@@ -93,7 +96,7 @@ impl Gui {
                 // Parse inputs
                 let cutoff = match self.cutoff_s.trim().parse::<f64>() {
                     Ok(v) => match cutoff_period_to_nyquist(v) {
-                        Ok(w) => w,
+                        Ok(w) => w / 0.5,  // Convert from nyquist=0.5 to nyquist=1.0
                         Err(e) => {self.error = Some(e); return;}
                     },
                     Err(e) => {
@@ -153,6 +156,7 @@ impl Gui {
                     _ => "(none)".into(),
                 };
                 self.plot_cache.clear();
+                self.ts_cache.clear();
             }
         }
     }
@@ -236,11 +240,28 @@ impl Gui {
             .width(Length::Fill)
             .height(300);
 
-        column![controls, output, pz]
+        let filtered = self
+            .app
+            .filtered_data
+            .as_ref()
+            .map(|f| f.filtered_data.as_slice());
+
+        let ts = Canvas::new(TimeSeriesPlotView {
+            raw: self.app.raw_data.as_slice(),
+            filtered,
+            cache: &self.ts_cache,
+        })
+        .width(Length::Fill)
+        .height(300);
+
+        row![
+        column![controls, output]
             .padding(16)
-            .spacing(16)
-            .into()
-            }
+            .spacing(16),
+        column![pz, ts].padding(16)
+            .spacing(16),
+        ].into()
+        }
 }
 
 struct PzPlotView<'a> {
@@ -465,6 +486,236 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                     }
                 }
             }
+        });
+
+        vec![geom]
+    }
+}
+
+struct TimeSeriesPlotView<'a> {
+    raw: &'a [f64],
+    filtered: Option<&'a [f64]>,
+    cache: &'a Cache,
+}
+
+impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
+    type State = ();
+
+    fn draw(
+        &self,
+        _state: &Self::State,
+        renderer: &Renderer,
+        _theme: &Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
+    ) -> Vec<Geometry> {
+        let geom = self.cache.draw(renderer, bounds.size(), |frame| {
+            let w = bounds.width as f32;
+            let h = bounds.height as f32;
+
+            let pad = 12.0_f32;
+            let panel_x = pad;
+            let panel_y = pad;
+            let panel_w = (w - 2.0 * pad).max(1.0);
+            let panel_h = (h - 2.0 * pad).max(1.0);
+
+            let r = 22.0_f32;
+            let panel = Path::rounded_rectangle(
+                Point::new(panel_x, panel_y),
+                Size::new(panel_w, panel_h),
+                Radius::from(r),
+            );
+
+            // white panel
+            frame.fill(
+                &panel,
+                Fill {
+                    style: Style::Solid(Color::WHITE),
+                    ..Fill::default()
+                },
+            );
+            frame.stroke(
+                &panel,
+                Stroke {
+                    width: 1.0,
+                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    ..Stroke::default()
+                },
+            );
+
+            // Inner plotting rect
+            let left = panel_x + 40.0;
+            let right = panel_x + panel_w - 12.0;
+            let top = panel_y + 12.0;
+            let bottom = panel_y + panel_h - 28.0;
+
+            let plot_w = (right - left).max(1.0);
+            let plot_h = (bottom - top).max(1.0);
+
+            // Decide how many points we can draw
+            let n_raw = self.raw.len();
+            if n_raw < 2 {
+                // nothing meaningful to draw
+                frame.fill_text(Text {
+                    content: "No raw data".into(),
+                    position: Point::new(left, top),
+                    color: Color::from_rgb8(0x22, 0x22, 0x22),
+                    size: 14.0.into(),
+                    ..Text::default()
+                });
+                return;
+            }
+
+            let n = match self.filtered {
+                Some(f) => n_raw.min(f.len()),
+                None => n_raw,
+            };
+            if n < 2 {
+                return;
+            }
+
+            // Y range from both series (raw + filtered if present)
+            let mut ymin = f64::INFINITY;
+            let mut ymax = f64::NEG_INFINITY;
+
+            for &y in &self.raw[..n] {
+                if y.is_finite() {
+                    ymin = ymin.min(y);
+                    ymax = ymax.max(y);
+                }
+            }
+            if let Some(f) = self.filtered {
+                for &y in &f[..n] {
+                    if y.is_finite() {
+                        ymin = ymin.min(y);
+                        ymax = ymax.max(y);
+                    }
+                }
+            }
+
+            if !ymin.is_finite() || !ymax.is_finite() {
+                return;
+            }
+
+            // handle flat signal
+            if (ymax - ymin).abs() < 1e-12 {
+                let mid = 0.5 * (ymax + ymin);
+                ymin = mid - 1.0;
+                ymax = mid + 1.0;
+            }
+
+            // add padding
+            let pad_y = 0.08 * (ymax - ymin);
+            ymin -= pad_y;
+            ymax += pad_y;
+
+            let map_x = |i: usize| -> f32 {
+                left + (i as f32) * (plot_w / ((n - 1) as f32))
+            };
+            let map_y = |y: f64| -> f32 {
+                let t = ((y - ymin) / (ymax - ymin)) as f32;
+                bottom - t * plot_h
+            };
+
+            // grid
+            let grid = Stroke {
+                width: 1.0,
+                style: Style::Solid(Color::from_rgb8(0xDD, 0xDD, 0xE2)),
+                ..Stroke::default()
+            };
+
+            for k in 0..=4 {
+                let t = k as f32 / 4.0;
+                let y = top + t * plot_h;
+                frame.stroke(&Path::line(Point::new(left, y), Point::new(right, y)), grid);
+            }
+            for k in 0..=4 {
+                let t = k as f32 / 4.0;
+                let x = left + t * plot_w;
+                frame.stroke(&Path::line(Point::new(x, top), Point::new(x, bottom)), grid);
+            }
+
+            // axes box
+            frame.stroke(
+                &Path::rectangle(Point::new(left, top), Size::new(plot_w, plot_h)),
+                Stroke {
+                    width: 1.0,
+                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    ..Stroke::default()
+                },
+            );
+
+            // y ticks (min / mid / max)
+            let label_color = Color::from_rgb8(0x22, 0x22, 0x22);
+            let size = 12.0;
+
+            let y_mid = 0.5 * (ymin + ymax);
+            for (val, yy) in [(ymax, top), (y_mid, (top + bottom) * 0.5), (ymin, bottom)] {
+                frame.fill_text(Text {
+                    content: format!("{val:.3}"),
+                    position: Point::new(panel_x + 6.0, yy - 6.0),
+                    color: label_color,
+                    size: size.into(),
+                    ..Text::default()
+                });
+            }
+
+            // draw raw line
+            let raw_stroke = Stroke {
+                width: 2.0,
+                style: Style::Solid(Color::from_rgb8(0x00, 0x66, 0xCC)),
+                ..Stroke::default()
+            };
+
+            let mut prev = None;
+            for i in 0..n {
+                let y = self.raw[i];
+                if !y.is_finite() {
+                    prev = None;
+                    continue;
+                }
+                let p = Point::new(map_x(i), map_y(y));
+                if let Some(q) = prev {
+                    frame.stroke(&Path::line(q, p), raw_stroke);
+                }
+                prev = Some(p);
+            }
+
+            // draw filtered line (if available)
+            if let Some(f) = self.filtered {
+                let filt_stroke = Stroke {
+                    width: 2.0,
+                    style: Style::Solid(Color::from_rgb8(0xCC, 0x00, 0x00)),
+                    ..Stroke::default()
+                };
+
+                let mut prev = None;
+                for i in 0..n {
+                    let y = f[i];
+                    if !y.is_finite() {
+                        prev = None;
+                        continue;
+                    }
+                    let p = Point::new(map_x(i), map_y(y));
+                    if let Some(q) = prev {
+                        frame.stroke(&Path::line(q, p), filt_stroke);
+                    }
+                    prev = Some(p);
+                }
+            }
+
+            // legend
+            frame.fill_text(Text {
+                content: if self.filtered.is_some() {
+                    "raw (blue) / filtered (red)".into()
+                } else {
+                    "raw (blue)".into()
+                },
+                position: Point::new(left, bottom + 8.0),
+                color: label_color,
+                size: 12.0.into(),
+                ..Text::default()
+            });
         });
 
         vec![geom]
