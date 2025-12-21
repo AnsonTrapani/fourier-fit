@@ -1,6 +1,6 @@
 pub mod filters;
 use filters::{
-    FilterData, NYQUIST_RATE, butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
+    FilterData, NYQUIST_PERIOD,butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
 };
 use ndarray::{Array2};
 use ndarray_linalg::EigVals;
@@ -57,7 +57,7 @@ impl App {
         Self {
             raw_data: Vec::new(),
             filter: FilterType::BUTTERWORTH,
-            cutoff_freq: NYQUIST_RATE,
+            cutoff_freq: NYQUIST_PERIOD,
             filtered_data: None,
             order: DEFAULT_ORDER,
             ripple: DEFAULT_RIPPLE,

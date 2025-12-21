@@ -1,6 +1,10 @@
 use scirs2::signal::filter;
+use sci_rs::signal::filter::{
+    design::{butter_dyn, DigitalFilter, FilterBandType, FilterOutputType, Sos, SosFormatFilter},
+    sosfiltfilt_dyn,
+};
 
-const NYQUIST_PERIOD: f64 = 2.;
+pub const NYQUIST_PERIOD: f64 = 2.;
 
 pub struct FilterData {
     pub filtered_data: Vec<f64>,
@@ -25,12 +29,13 @@ pub fn butterworth_filter(
 ) -> Result<FilterData, String> {
     let (num, den) = match filter::butter(order, cutoff_freq, "lowpass") {
         Ok(v) => v,
+        Err(_) => return Err(String::from("P-Z butterworth filter construction failed")),
+    };
+    let sos = match butterworth_sos(order, vec![cutoff_freq], FilterBandType::Lowpass) {
+        Ok(v) => v,
         Err(_) => return Err(String::from("Butterworth filter construction failed")),
     };
-    let filtered = match filter::filtfilt(&num, &den, data) {
-        Ok(f) => f,
-        Err(_) => return Err(String::from("Butterworth filtering failed")),
-    };
+    let filtered = sosfiltfilt_dyn(data.iter().copied(), &sos);
     Ok(FilterData {
         filtered_data: filtered,
         b: num,
@@ -78,4 +83,26 @@ pub fn chebyshev_filter_2(
         b: num,
         a: den,
     })
+}
+
+pub fn butterworth_sos(
+    order: usize,
+    wn: Vec<f64>,
+    band: FilterBandType,
+    // fs: f64,
+) -> Result<Vec<Sos<f64>>, String> {
+    let df = butter_dyn(
+        order,
+        wn,
+        Some(band),
+        Some(false),                    // digital filter
+        Some(FilterOutputType::Sos),    // force SOS output
+        // Some(fs),                       // wn interpreted in same units as fs
+        None
+    );
+
+    match df {
+        DigitalFilter::Sos(SosFormatFilter { sos }) => Ok(sos),
+        _ => Err("butter_dyn did not return SOS output".into()),
+    }
 }
