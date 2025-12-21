@@ -1,7 +1,6 @@
 use scirs2::signal::filter;
 
-pub const NYQUIST_RATE: f64 = 0.5; // In cycles per sample
-const NYQUIST_PERIOD: f64 = 1. / NYQUIST_RATE;
+const NYQUIST_PERIOD: f64 = 2.;
 
 pub struct FilterData {
     pub filtered_data: Vec<f64>,
@@ -16,17 +15,7 @@ pub fn cutoff_period_to_nyquist(period: f64) -> Result<f64, String> {
             "Period of {period} is below the nyquist period of {NYQUIST_PERIOD}"
         ));
     }
-    Ok(1. / period / NYQUIST_RATE)
-}
-
-// Freq in cycles per sample
-pub fn cutoff_freq_to_nyquist(freq: f64) -> Result<f64, String> {
-    if freq > NYQUIST_RATE {
-        return Err(format!(
-            "Period of {freq} is greater than the nyquist period of {NYQUIST_RATE}"
-        ));
-    }
-    Ok(freq / NYQUIST_RATE)
+    Ok(NYQUIST_PERIOD / period)
 }
 
 pub fn butterworth_filter(
@@ -38,13 +27,10 @@ pub fn butterworth_filter(
         Ok(v) => v,
         Err(_) => return Err(String::from("Butterworth filter construction failed")),
     };
-    // println!("{}", cutoff_freq);
-    // println!("{:?}", data);
     let filtered = match filter::filtfilt(&num, &den, data) {
         Ok(f) => f,
         Err(_) => return Err(String::from("Butterworth filtering failed")),
     };
-    // println!("{:?}", filtered);
     Ok(FilterData {
         filtered_data: filtered,
         b: num,

@@ -96,7 +96,7 @@ impl Gui {
                 // Parse inputs
                 let cutoff = match self.cutoff_s.trim().parse::<f64>() {
                     Ok(v) => match cutoff_period_to_nyquist(v) {
-                        Ok(w) => w / 0.5,  // Convert from nyquist=0.5 to nyquist=1.0
+                        Ok(w) => w,
                         Err(e) => {self.error = Some(e); return;}
                     },
                     Err(e) => {
