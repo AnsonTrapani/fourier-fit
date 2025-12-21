@@ -3,9 +3,10 @@ use iced::{
     Alignment, Element, Length, Theme,
 };
 use iced::widget::Canvas;
-use iced::widget::canvas::{self, Cache, Geometry, Path, Stroke, Fill, Text};
+use iced::widget::canvas::{self, Cache, Geometry, Path, Stroke, Fill, Style};
 use iced::{Color, Point, Rectangle, Renderer, Size};
 use iced::mouse;
+use iced::border::Radius;
 use num_complex::Complex;
 use fourier_fit::{App, FilterType, filters::cutoff_period_to_nyquist};
 
@@ -262,56 +263,133 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
             let w = bounds.width as f32;
             let h = bounds.height as f32;
-            let s = w.min(h);
-            let center = Point::new(w * 0.5, h * 0.5);
 
-            let r = s * 0.42;
+            // Panel inset (so we don't draw into the dark background region)
+            let pad = 12.0_f32;
+
+            let panel_x = pad;
+            let panel_y = pad;
+            let panel_w = (w - 2.0 * pad).max(1.0);
+            let panel_h = (h - 2.0 * pad).max(1.0);
+
+            // "Squircle-ish" radius: big rounded corners
+            let r = 22.0_f32;
+
+            let panel = Path::rounded_rectangle(
+                Point::new(panel_x, panel_y),
+                Size::new(panel_w, panel_h),
+                Radius::from(r),
+            );
+
+            // White background panel
+            frame.fill(
+                &panel,
+                Fill {
+                    style: Style::Solid(Color::WHITE),
+                    ..Fill::default()
+                },
+            );
+
+            // Border (optional but nice)
+            frame.stroke(
+                &panel,
+                Stroke {
+                    width: 1.0,
+                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    ..Stroke::default()
+                },
+            );
+
+            // Now draw inside the panel area
+            let inner_w = panel_w;
+            let inner_h = panel_h;
+            let origin = Point::new(panel_x, panel_y);
+            let center = Point::new(origin.x + inner_w * 0.5, origin.y + inner_h * 0.5);
+
+            let s = inner_w.min(inner_h);
+            let plot_r = s * 0.42;
+
             let to_px = |z: Complex<f64>| -> Point {
-                Point::new(center.x + (z.re as f32) * r, center.y - (z.im as f32) * r)
+                Point::new(
+                    center.x + (z.re as f32) * plot_r,
+                    center.y - (z.im as f32) * plot_r,
+                )
             };
 
-            // axes
+            let axis_stroke = Stroke {
+                width: 1.0,
+                style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                ..Stroke::default()
+            };
+
+            // Axes confined to panel bounds
             frame.stroke(
-                &Path::line(Point::new(0.0, center.y), Point::new(w, center.y)),
-                Stroke { width: 1.0, ..Stroke::default() },
+                &Path::line(
+                    Point::new(origin.x, center.y),
+                    Point::new(origin.x + inner_w, center.y),
+                ),
+                axis_stroke,
             );
             frame.stroke(
-                &Path::line(Point::new(center.x, 0.0), Point::new(center.x, h)),
-                Stroke { width: 1.0, ..Stroke::default() },
+                &Path::line(
+                    Point::new(center.x, origin.y),
+                    Point::new(center.x, origin.y + inner_h),
+                ),
+                axis_stroke,
             );
 
-            // unit circle
+            // Unit circle
             frame.stroke(
-                &Path::circle(center, r),
-                Stroke { width: 1.0, ..Stroke::default() },
+                &Path::circle(center, plot_r),
+                Stroke {
+                    width: 1.0,
+                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    ..Stroke::default()
+                },
             );
 
-            // zeros: draw small circles
+            // Zeros: small circles
             if let Some(zs) = self.zeros {
                 for &z in zs {
                     if z.re.is_finite() && z.im.is_finite() {
                         let p = to_px(z);
                         frame.stroke(
                             &Path::circle(p, 5.0),
-                            Stroke { width: 2.0, ..Stroke::default() },
+                            Stroke {
+                                width: 2.0,
+                                style: Style::Solid(Color::from_rgb8(0x00, 0x66, 0xCC)),
+                                ..Stroke::default()
+                            },
                         );
                     }
                 }
             }
 
-            // poles: draw X
+            // Poles: X
             if let Some(ps) = self.poles {
                 for &p0 in ps {
                     if p0.re.is_finite() && p0.im.is_finite() {
                         let p = to_px(p0);
                         let d = 5.0;
+                        let pole_stroke = Stroke {
+                            width: 2.0,
+                            style: Style::Solid(Color::from_rgb8(0xCC, 0x00, 0x00)),
+                            ..Stroke::default()
+                        };
+
                         frame.stroke(
-                            &Path::line(Point::new(p.x - d, p.y - d), Point::new(p.x + d, p.y + d)),
-                            Stroke { width: 2.0, ..Stroke::default() },
+                            &Path::line(
+                                Point::new(p.x - d, p.y - d),
+                                Point::new(p.x + d, p.y + d),
+                            ),
+                            pole_stroke,
                         );
                         frame.stroke(
-                            &Path::line(Point::new(p.x - d, p.y + d), Point::new(p.x + d, p.y - d)),
-                            Stroke { width: 2.0, ..Stroke::default() },
+                            &Path::line(
+                                Point::new(p.x - d, p.y + d),
+                                Point::new(p.x + d, p.y - d),
+                            ),
+                            pole_stroke,
                         );
                     }
                 }
