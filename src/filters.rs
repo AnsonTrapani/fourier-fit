@@ -5,8 +5,8 @@ const NYQUIST_PERIOD: f64 = 1. / NYQUIST_RATE;
 
 pub struct FilterData {
     filtered_data: Vec<f64>,
-    b: Vec<f64>,
-    a: Vec<f64>,
+    pub b: Vec<f64>,
+    pub a: Vec<f64>,
 }
 
 // Period in samples
@@ -44,8 +44,8 @@ pub fn butterworth_filter(
     };
     Ok(FilterData {
         filtered_data: filtered,
-        b,
-        a,
+        b: num,
+        a: den,
     })
 }
 
@@ -65,8 +65,8 @@ pub fn chebyshev_filter_1(
     };
     Ok(FilterData {
         filtered_data: filtered,
-        b,
-        a,
+        b: num,
+        a: den,
     })
 }
 
@@ -86,7 +86,7 @@ pub fn chebyshev_filter_2(
     };
     Ok(FilterData {
         filtered_data: filtered,
-        b,
-        a,
+        b: num,
+        a: den,
     })
 }

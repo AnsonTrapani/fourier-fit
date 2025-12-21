@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-aberth = "0.4.1"
+iced = "0.14.0"
+ndarray = "0.17.1"
+ndarray-linalg = "0.18.0"
+num-complex = "0.4.6"
 rustfft = "6.4.1"
 scirs2 = "0.1.0-rc.2"
 scirs2-signal = "0.1.0-rc.2"
