@@ -3,7 +3,7 @@ use iced::{
     Alignment, Element, Length, Theme,
 };
 use iced::widget::Canvas;
-use iced::widget::canvas::{self, Cache, Geometry, Path, Stroke, Fill, Style};
+use iced::widget::canvas::{self, Cache, Geometry, Path, Stroke, Fill, Style, Text};
 use iced::{Color, Point, Rectangle, Renderer, Size};
 use iced::mouse;
 use iced::border::Radius;
@@ -309,6 +309,34 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
             let s = inner_w.min(inner_h);
             let plot_r = s * 0.42;
 
+            let grid_stroke = Stroke {
+                width: 1.0,
+                style: Style::Solid(Color::from_rgb8(0xDD, 0xDD, 0xE2)),
+                ..Stroke::default()
+            };
+
+            for k in [-1.0_f32, -0.5, 0.0, 0.5, 1.0] {
+                let x = center.x + k * plot_r;
+                frame.stroke(
+                    &Path::line(
+                        Point::new(x, origin.y),
+                        Point::new(x, origin.y + inner_h),
+                    ),
+                    grid_stroke,
+                );
+            }
+
+            for k in [-1.0_f32, -0.5, 0.0, 0.5, 1.0] {
+                let y = center.y - k * plot_r;
+                frame.stroke(
+                    &Path::line(
+                        Point::new(origin.x, y),
+                        Point::new(origin.x + inner_w, y),
+                    ),
+                    grid_stroke,
+                );
+            }
+
             let to_px = |z: Complex<f64>| -> Point {
                 Point::new(
                     center.x + (z.re as f32) * plot_r,
@@ -317,8 +345,8 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
             };
 
             let axis_stroke = Stroke {
-                width: 1.0,
-                style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                width: 1.5,
+                style: Style::Solid(Color::from_rgb8(0x33, 0x33, 0x33)),
                 ..Stroke::default()
             };
 
@@ -347,6 +375,49 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                     ..Stroke::default()
                 },
             );
+
+            let label_color = Color::from_rgb8(0x22, 0x22, 0x22);
+            let label_size = 14.0;
+
+            frame.fill_text(Text {
+                content: "0".into(),
+                position: Point::new(center.x + 4.0, center.y),
+                color: label_color,
+                size: label_size.into(),
+                ..Text::default()
+            });
+
+            frame.fill_text(Text {
+                content: "1".into(),
+                position: Point::new(center.x + plot_r + 4.0, center.y),
+                color: label_color,
+                size: label_size.into(),
+                ..Text::default()
+            });
+
+            frame.fill_text(Text {
+                content: "-1".into(),
+                position: Point::new(center.x - plot_r + 4.0, center.y),
+                color: label_color,
+                size: label_size.into(),
+                ..Text::default()
+            });
+
+            frame.fill_text(Text {
+                content: " j".into(),
+                position: Point::new(center.x + 4.0, center.y - plot_r),
+                color: label_color,
+                size: label_size.into(),
+                ..Text::default()
+            });
+
+            frame.fill_text(Text {
+                content: "-j".into(),
+                position: Point::new(center.x + 4.0, center.y + plot_r),
+                color: label_color,
+                size: label_size.into(),
+                ..Text::default()
+            });
 
             // Zeros: small circles
             if let Some(zs) = self.zeros {
