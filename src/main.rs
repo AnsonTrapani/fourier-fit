@@ -3,7 +3,7 @@ use iced::{
     Alignment, Element, Length, Theme,
 };
 
-use fourier_fit::{App, FilterType}; // <-- replace with your crate name
+use fourier_fit::{App, FilterType, filters::cutoff_period_to_nyquist}; // <-- replace with your crate name
 
 pub fn main() -> iced::Result {
     iced::application(Gui::default, Gui::update, Gui::view)
@@ -84,7 +84,10 @@ impl Gui {
 
                 // Parse inputs
                 let cutoff = match self.cutoff_s.trim().parse::<f64>() {
-                    Ok(v) => v,
+                    Ok(v) => match cutoff_period_to_nyquist(v) {
+                        Ok(w) => w,
+                        Err(e) => {self.error = Some(e); return;}
+                    },
                     Err(e) => {
                         self.error = Some(format!("cutoff parse error: {e}"));
                         return;
@@ -145,7 +148,7 @@ impl Gui {
         }
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         let filter_options = [
             FilterType::BUTTERWORTH,
             FilterType::CHEBYSHEV1,
@@ -166,7 +169,7 @@ impl Gui {
             .align_y(Alignment::Center),
 
             row![
-                text("Cutoff (normalized, 0..0.5):").width(Length::Shrink),
+                text("Cutoff period (days):").width(Length::Shrink),
                 text_input("e.g. 0.25", &self.cutoff_s)
                     .on_input(Message::CutoffChanged)
                     .width(180),
