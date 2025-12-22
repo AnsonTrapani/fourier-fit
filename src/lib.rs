@@ -135,6 +135,14 @@ impl App {
             })
             .collect();
     }
+
+    pub fn fft_filtered(&mut self) -> Result<(), String> {
+        if let Some(data) = filtered_data {
+            self.data_spectrum = frequency::rfft_mag(data)?
+        } else {
+            return Err(String::from("Filtering not complete"));
+        }
+    }
 }
 
 /// c in ascending order: c[0] + c[1] w + ... + c[n] w^n
