@@ -811,12 +811,11 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             }
 
             // Y range from both series (raw + filtered if present)
-            let mut ymin = f64::INFINITY;
+            let ymin = 0f64;
             let mut ymax = f64::NEG_INFINITY;
 
             for &y in fft_out {
                 if y.is_finite() {
-                    ymin = ymin.min(y);
                     ymax = ymax.max(y);
                 }
             }
@@ -828,16 +827,14 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             // handle flat signal
             if (ymax - ymin).abs() < 1e-12 {
                 let mid = 0.5 * (ymax + ymin);
-                ymin = mid - 1.0;
                 ymax = mid + 1.0;
             }
 
             // add padding
             let pad_y = 0.08 * (ymax - ymin);
-            ymin -= pad_y;
             ymax += pad_y;
 
-            let map_x = |i: usize| -> f32 { left + (i as f32) * (plot_w / ((n - 1) as f32)) };
+            // let map_x = |i: usize| -> f32 { left + (i as f32) * (plot_w / ((n - 1) as f32)) };
             let map_y = |y: f64| -> f32 {
                 let t = ((y - ymin) / (ymax - ymin)) as f32;
                 bottom - t * plot_h
@@ -917,7 +914,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 };
 
                 // Skip ultra-tiny bars if you want:
-                // if height < 0.5 { continue; }
+                if height == 0.0 { continue; }
 
                 let rect = Path::rectangle(Point::new(x, top_y), Size::new(bar_w, height.max(1.0)));
                 frame.fill(
@@ -938,6 +935,44 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                     ..Stroke::default()
                 },
             );
+
+            let tick_stroke = Stroke {
+                width: 1.0,
+                style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                ..Stroke::default()
+            };
+
+            let x_label_y = bottom + 16.0;
+            let tick_len = 6.0_f32;
+
+            // label 0 .. Nyquist (fs/2) in cycles/day
+            let nyq = 1. / 2.0;
+            for k in 0..=4 {
+                let t = k as f32 / 4.0;
+                let x = left + t * plot_w;
+
+                // tick mark
+                frame.stroke(&Path::line(Point::new(x, bottom), Point::new(x, bottom + tick_len)), tick_stroke);
+
+                // value
+                let f = (t as f64) * nyq;
+                frame.fill_text(Text {
+                    content: format!("{f:.3}"),
+                    position: Point::new(x - 12.0, x_label_y),
+                    color: label_color,
+                    size: 12.0.into(),
+                    ..Text::default()
+                });
+            }
+
+            // x-axis unit label
+            frame.fill_text(Text {
+                content: "Frequency (cycles/day)".into(),
+                position: Point::new(left + plot_w * 0.5 - 70.0, bottom + 32.0),
+                color: label_color,
+                size: 12.0.into(),
+                ..Text::default()
+            });
         });
 
         vec![geom]
