@@ -1,11 +1,11 @@
-use fourier_fit::{App, FilterType, filters::cutoff_period_to_nyquist};
+use fourier_fit::{App, FilterType, filters::cutoff_period_to_nyquist, Message, background::Background};
 use iced::border::Radius;
 use iced::mouse;
 use iced::widget::Canvas;
 use iced::widget::canvas::{self, Cache, Fill, Geometry, Path, Stroke, Style, Text};
 use iced::{
     Alignment, Element, Length, Theme,
-    widget::{button, column, pick_list, row, scrollable, text, text_input},
+    widget::{button, column, pick_list, row, scrollable, text, text_input, stack},
 };
 use iced::{Color, Point, Rectangle, Renderer, Size};
 use num_complex::Complex;
@@ -15,18 +15,6 @@ pub fn main() -> iced::Result {
         .theme(Theme::Dark)
         .centered()
         .run()
-}
-
-#[derive(Debug, Clone)]
-enum Message {
-    FilterChanged(FilterType),
-    CutoffChanged(String),
-    OrderChanged(String),
-    RippleChanged(String),
-    AttenuationChanged(String),
-    LoadDemo,
-    Calculate,
-    ClearOutput,
 }
 
 #[derive(Default)]
@@ -251,7 +239,7 @@ impl Gui {
             cache: &self.plot_cache,
         })
         .width(Length::Fill)
-        .height(300);
+        .height(Length::FillPortion(1));
 
         let filtered = self
             .app
@@ -265,18 +253,23 @@ impl Gui {
             cache: &self.ts_cache,
         })
         .width(Length::Fill)
-        .height(300);
+        .height(Length::FillPortion(1));
 
         let fft = Canvas::new(SpectralView {
             fft_out: self.app.data_spectrum.as_deref(),
             cache: &self.fft_cache,
         })
         .width(Length::Fill)
-        .height(300);
+        .height(Length::FillPortion(1));
 
-        row![
+        let content = row![
             column![controls, output].padding(16).spacing(16),
             column![pz, ts, fft].padding(16).spacing(16),
+        ];
+
+        stack![
+            Canvas::new(Background).width(Length::Fill).height(Length::Fill),
+            content,
         ]
         .into()
     }
@@ -656,7 +649,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
             let y_mid = 0.5 * (ymin + ymax);
             for (val, yy) in [(ymax, top), (y_mid, (top + bottom) * 0.5), (ymin, bottom)] {
                 frame.fill_text(Text {
-                    content: format!("{val:.3}"),
+                    content: format!("{val:.1}"),
                     position: Point::new(panel_x + 6.0, yy - 6.0),
                     color: label_color,
                     size: size.into(),

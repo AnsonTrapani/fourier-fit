@@ -1,5 +1,6 @@
 pub mod filters;
 pub mod frequency;
+pub mod background;
 use filters::{
     FilterData, NYQUIST_PERIOD, butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
 };
@@ -207,4 +208,16 @@ pub fn iir_zeros_poles_z(
     let zeros_z: Vec<_> = zeros_w.into_iter().map(inv).collect();
     let poles_z: Vec<_> = poles_w.into_iter().map(inv).collect();
     Ok((zeros_z, poles_z))
+}
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    FilterChanged(FilterType),
+    CutoffChanged(String),
+    OrderChanged(String),
+    RippleChanged(String),
+    AttenuationChanged(String),
+    LoadDemo,
+    Calculate,
+    ClearOutput,
 }
