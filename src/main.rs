@@ -268,7 +268,7 @@ impl Gui {
         .height(300);
 
         let fft = Canvas::new(SpectralView {
-            fft_out: self.app.data_spectrum.as_slice(),
+            fft_out: self.app.data_spectrum.as_deref(),
             cache: &self.fft_cache,
         })
         .width(Length::Fill)
@@ -276,7 +276,7 @@ impl Gui {
 
         row![
             column![controls, output].padding(16).spacing(16),
-            column![pz, ts].padding(16).spacing(16),
+            column![pz, ts, fft].padding(16).spacing(16),
         ]
         .into()
     }
@@ -797,8 +797,8 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 return;
             }
             let fft_out = self.fft_out.unwrap();
-            let n_raw = fft_out.unwrap().len();
-            if n_raw < 2 {
+            let n = fft_out.len();
+            if n < 2 {
                 // nothing meaningful to draw
                 frame.fill_text(Text {
                     content: "Insufficient fft data".into(),
@@ -814,7 +814,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             let mut ymin = f64::INFINITY;
             let mut ymax = f64::NEG_INFINITY;
 
-            for &y in &fft_out[..n] {
+            for &y in fft_out {
                 if y.is_finite() {
                     ymin = ymin.min(y);
                     ymax = ymax.max(y);

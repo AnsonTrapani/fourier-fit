@@ -137,10 +137,11 @@ impl App {
     }
 
     pub fn fft_filtered(&mut self) -> Result<(), String> {
-        if let Some(data) = filtered_data {
-            self.data_spectrum = frequency::rfft_mag(data)?
+        if let Some(data) = &self.filtered_data {
+            self.data_spectrum = Some(frequency::rfft_mag(&data.filtered_data)?);
+            Ok(())
         } else {
-            return Err(String::from("Filtering not complete"));
+            Err(String::from("Filtering not complete"))
         }
     }
 }
