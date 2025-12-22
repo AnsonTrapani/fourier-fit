@@ -7,6 +7,7 @@ use filters::{
 use ndarray::Array2;
 use ndarray_linalg::EigVals;
 use num_complex::Complex;
+use iced::Color;
 
 const DEFAULT_ORDER: usize = 4;
 const DEFAULT_RIPPLE: f64 = 5.;
@@ -234,3 +235,9 @@ pub fn fmt_tick(v: f64) -> String {
         format!("{v:.2}")
     }
 }
+
+pub fn panel_bg() -> Color { Color::from_rgb8(0x10, 0x10, 0x14) }     // dark panel
+pub fn panel_border() -> Color { Color::from_rgb8(0x2A, 0x2A, 0x33) } // subtle border
+pub fn grid_color() -> Color { Color::from_rgb8(0x22, 0x22, 0x2B) }   // dark grid
+pub fn label_color() -> Color { Color::from_rgb8(0xD6, 0xD6, 0xE2) }  // light text
+pub fn glow_purple() -> Color { Color::from_rgb8(0xB7, 0x63, 0xFF) }  // accent

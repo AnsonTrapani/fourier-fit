@@ -1,4 +1,6 @@
-use fourier_fit::{App, FilterType, filters::cutoff_period_to_nyquist, Message, background::Background};
+use fourier_fit::*;
+use fourier_fit::filters::cutoff_period_to_nyquist;
+use fourier_fit::background::Background;
 use iced::border::Radius;
 use iced::mouse;
 use iced::widget::Canvas;
@@ -317,7 +319,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
             frame.fill(
                 &panel,
                 Fill {
-                    style: Style::Solid(Color::WHITE),
+                    style: Style::Solid(panel_bg()),
                     ..Fill::default()
                 },
             );
@@ -327,7 +329,16 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                 &panel,
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    style: Style::Solid(panel_border()),
+                    ..Stroke::default()
+                },
+            );
+
+            frame.stroke(
+                &panel,
+                Stroke {
+                    width: 1.0,
+                    style: Style::Solid(Color { a: 0.22, ..glow_purple() }),
                     ..Stroke::default()
                 },
             );
@@ -343,7 +354,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
 
             let grid_stroke = Stroke {
                 width: 1.0,
-                style: Style::Solid(Color::from_rgb8(0xDD, 0xDD, 0xE2)),
+                style: Style::Solid(grid_color()),
                 ..Stroke::default()
             };
 
@@ -402,7 +413,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                 },
             );
 
-            let label_color = Color::from_rgb8(0x22, 0x22, 0x22);
+            let label_color = label_color();
             let label_size = 14.0;
 
             frame.fill_text(Text {
@@ -525,19 +536,29 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
                 Radius::from(r),
             );
 
-            // white panel
             frame.fill(
                 &panel,
                 Fill {
-                    style: Style::Solid(Color::WHITE),
+                    style: Style::Solid(panel_bg()),
                     ..Fill::default()
                 },
             );
+
+            // Border (optional but nice)
             frame.stroke(
                 &panel,
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    style: Style::Solid(panel_border()),
+                    ..Stroke::default()
+                },
+            );
+
+            frame.stroke(
+                &panel,
+                Stroke {
+                    width: 1.0,
+                    style: Style::Solid(Color { a: 0.22, ..glow_purple() }),
                     ..Stroke::default()
                 },
             );
@@ -752,19 +773,29 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 Radius::from(r),
             );
 
-            // white panel
             frame.fill(
                 &panel,
                 Fill {
-                    style: Style::Solid(Color::WHITE),
+                    style: Style::Solid(panel_bg()),
                     ..Fill::default()
                 },
             );
+
+            // Border (optional but nice)
             frame.stroke(
                 &panel,
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    style: Style::Solid(panel_border()),
+                    ..Stroke::default()
+                },
+            );
+
+            frame.stroke(
+                &panel,
+                Stroke {
+                    width: 1.0,
+                    style: Style::Solid(Color { a: 0.22, ..glow_purple() }),
                     ..Stroke::default()
                 },
             );
@@ -961,7 +992,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             // x-axis unit label
             frame.fill_text(Text {
                 content: "Frequency (cycles/day)".into(),
-                position: Point::new(left + plot_w * 0.5 - 70.0, bottom + 32.0),
+                position: Point::new(left + plot_w * 0.5 - 70.0, bottom + 20.0),
                 color: label_color,
                 size: 12.0.into(),
                 ..Text::default()
