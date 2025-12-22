@@ -284,7 +284,7 @@ impl Gui {
 
         let content = row![
             column![controls, output].padding(16).spacing(16),
-            column![row![pz, filter_tf_bode].padding(16).spacing(16), ts, fft].padding(16).spacing(16),
+            column![row![pz, filter_tf_bode].spacing(5), ts, fft].padding(16).spacing(16),
         ];
 
         stack![

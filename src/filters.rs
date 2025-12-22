@@ -27,10 +27,11 @@ pub fn butterworth_filter(
     cutoff_freq: f64,
     order: usize,
 ) -> Result<FilterData, String> {
-    let (num, den) = match filter::butter(order, cutoff_freq, "lowpass") {
+    let (mut num, den) = match filter::butter(order, cutoff_freq, "lowpass") {
         Ok(v) => v,
         Err(_) => return Err(String::from("P-Z butterworth filter construction failed")),
     };
+    normalize_lowpass_dc(&mut num, &den);
     let sos = match butterworth_sos(order, vec![cutoff_freq], FilterBandType::Lowpass) {
         Ok(v) => v,
         Err(_) => return Err(String::from("Butterworth filter construction failed")),
@@ -104,5 +105,14 @@ pub fn butterworth_sos(
     match df {
         DigitalFilter::Sos(SosFormatFilter { sos }) => Ok(sos),
         _ => Err("butter_dyn did not return SOS output".into()),
+    }
+}
+
+fn normalize_lowpass_dc(b: &mut [f64], a: &[f64]) {
+    let sum_b: f64 = b.iter().sum();
+    let sum_a: f64 = a.iter().sum();
+    let g = sum_b / sum_a;          // H(0)
+    for bi in b.iter_mut() {
+        *bi /= g;                   // make H(0) = 1
     }
 }
