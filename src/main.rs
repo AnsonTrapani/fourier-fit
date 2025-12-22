@@ -383,7 +383,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
 
             let axis_stroke = Stroke {
                 width: 1.5,
-                style: Style::Solid(Color::from_rgb8(0x33, 0x33, 0x33)),
+                style: Style::Solid(grid_color()),
                 ..Stroke::default()
             };
 
@@ -408,7 +408,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                 &Path::circle(center, plot_r),
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    style: Style::Solid(grid_color()),
                     ..Stroke::default()
                 },
             );
@@ -578,8 +578,8 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
                 // nothing meaningful to draw
                 frame.fill_text(Text {
                     content: "No raw data".into(),
-                    position: Point::new(left, top),
-                    color: Color::from_rgb8(0x22, 0x22, 0x22),
+                    position: Point::new((left + right) / 2., (top + bottom) / 2.),
+                    color: label_color(),
                     size: 14.0.into(),
                     ..Text::default()
                 });
@@ -638,7 +638,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
             // grid
             let grid = Stroke {
                 width: 1.0,
-                style: Style::Solid(Color::from_rgb8(0xDD, 0xDD, 0xE2)),
+                style: Style::Solid(grid_color()),
                 ..Stroke::default()
             };
 
@@ -658,13 +658,13 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
                 &Path::rectangle(Point::new(left, top), Size::new(plot_w, plot_h)),
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    style: Style::Solid(grid_color()),
                     ..Stroke::default()
                 },
             );
 
             // y ticks (min / mid / max)
-            let label_color = Color::from_rgb8(0x22, 0x22, 0x22);
+            let label_color = label_color();
             let size = 12.0;
 
             let y_mid = 0.5 * (ymin + ymax);
@@ -813,8 +813,8 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             if self.fft_out.is_none() {
                 frame.fill_text(Text {
                     content: "No fft data".into(),
-                    position: Point::new(left, top),
-                    color: Color::from_rgb8(0x22, 0x22, 0x22),
+                    position: Point::new((left + right) / 2., (top + bottom) / 2.),
+                    color: label_color(),
                     size: 14.0.into(),
                     ..Text::default()
                 });
@@ -867,7 +867,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             // grid
             let grid = Stroke {
                 width: 1.0,
-                style: Style::Solid(Color::from_rgb8(0xDD, 0xDD, 0xE2)),
+                style: Style::Solid(grid_color()),
                 ..Stroke::default()
             };
 
@@ -887,13 +887,13 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 &Path::rectangle(Point::new(left, top), Size::new(plot_w, plot_h)),
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    style: Style::Solid(grid_color()),
                     ..Stroke::default()
                 },
             );
 
             // y ticks (min / mid / max)
-            let label_color = Color::from_rgb8(0x22, 0x22, 0x22);
+            let label_color = label_color();
             let size = 12.0;
 
             let y_mid = 0.5 * (ymin + ymax);
@@ -918,6 +918,11 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             let bar_w = (dx - gap).max(1.0);
 
             let bar_color = Color::from_rgb8(0x00, 0x66, 0xCC);
+            let mut max_bar_height = 0f64;
+
+            for &num in fft_out {
+                max_bar_height = f64::max(max_bar_height, num);
+            }
 
             for i in 1..n {
                 let y = fft_out[i];
@@ -938,7 +943,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 };
 
                 // Skip ultra-tiny bars if you want:
-                if height == 0.0 { continue; }
+                if height <= max_bar_height as f32 * 0.01f32 { continue; }
 
                 let rect = Path::rectangle(Point::new(x, top_y), Size::new(bar_w, height.max(1.0)));
                 frame.fill(
@@ -949,16 +954,6 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                     },
                 );
             }
-
-            // Optional: baseline line
-            frame.stroke(
-                &Path::line(Point::new(left, baseline_y), Point::new(right, baseline_y)),
-                Stroke {
-                    width: 1.0,
-                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
-                    ..Stroke::default()
-                },
-            );
 
             let tick_stroke = Stroke {
                 width: 1.0,
