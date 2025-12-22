@@ -886,26 +886,58 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 });
             }
 
-            // draw raw line
-            let raw_stroke = Stroke {
-                width: 2.0,
-                style: Style::Solid(Color::from_rgb8(0x00, 0x66, 0xCC)),
-                ..Stroke::default()
-            };
+            // --- bars ---
+            // Choose a baseline: 0 if it's within range, else ymin
+            let baseline_val = if ymin <= 0.0 && 0.0 <= ymax { 0.0 } else { ymin };
+            let baseline_y = map_y(baseline_val);
 
-            let mut prev = None;
-            for i in 0..n {
+            // Bar sizing
+            let dx = plot_w / (n as f32);
+            let gap = (dx * 0.15).min(3.0);           // small spacing between bars
+            let bar_w = (dx - gap).max(1.0);
+
+            let bar_color = Color::from_rgb8(0x00, 0x66, 0xCC);
+
+            for i in 1..n {
                 let y = fft_out[i];
                 if !y.is_finite() {
-                    prev = None;
                     continue;
                 }
-                let p = Point::new(map_x(i), map_y(y));
-                if let Some(q) = prev {
-                    frame.stroke(&Path::line(q, p), raw_stroke);
-                }
-                prev = Some(p);
+
+                // x position centered in bin i
+                let x = left + (i as f32) * dx + gap * 0.5;
+
+                let y_px = map_y(y);
+
+                // bar goes from baseline to y
+                let (top_y, height) = if y_px < baseline_y {
+                    (y_px, baseline_y - y_px) // positive relative to baseline
+                } else {
+                    (baseline_y, y_px - baseline_y) // negative relative to baseline
+                };
+
+                // Skip ultra-tiny bars if you want:
+                // if height < 0.5 { continue; }
+
+                let rect = Path::rectangle(Point::new(x, top_y), Size::new(bar_w, height.max(1.0)));
+                frame.fill(
+                    &rect,
+                    Fill {
+                        style: Style::Solid(bar_color),
+                        ..Fill::default()
+                    },
+                );
             }
+
+            // Optional: baseline line
+            frame.stroke(
+                &Path::line(Point::new(left, baseline_y), Point::new(right, baseline_y)),
+                Stroke {
+                    width: 1.0,
+                    style: Style::Solid(Color::from_rgb8(0x22, 0x22, 0x22)),
+                    ..Stroke::default()
+                },
+            );
         });
 
         vec![geom]
