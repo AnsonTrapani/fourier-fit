@@ -1,8 +1,9 @@
 pub mod filters;
+pub mod frequency;
 use filters::{
-    FilterData, NYQUIST_PERIOD,butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
+    FilterData, NYQUIST_PERIOD, butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
 };
-use ndarray::{Array2};
+use ndarray::Array2;
 use ndarray_linalg::EigVals;
 use num_complex::Complex;
 
@@ -50,6 +51,8 @@ pub struct App {
     pub attenuation: f64,
     pub poles: Option<Vec<Complex<f64>>>,
     pub zeros: Option<Vec<Complex<f64>>>,
+    pub bode_plot: Option<Vec<f64>>,
+    pub data_spectrum: Option<Vec<f64>>,
 }
 
 impl App {
@@ -64,6 +67,8 @@ impl App {
             attenuation: DEFAULT_ATTENUATION,
             poles: None,
             zeros: None,
+            bode_plot: None,
+            data_spectrum: None,
         }
     }
 
@@ -94,18 +99,31 @@ impl App {
                 }
             }
         };
-        (self.zeros, self.poles) = match iir_zeros_poles_z(self.filtered_data.as_ref().unwrap().b.as_slice(), self.filtered_data.as_ref().unwrap().a.as_slice()) {
+        (self.zeros, self.poles) = match iir_zeros_poles_z(
+            self.filtered_data.as_ref().unwrap().b.as_slice(),
+            self.filtered_data.as_ref().unwrap().a.as_slice(),
+        ) {
             Ok((z, p)) => (Some(z), Some(p)),
-            Err(s) => return Err(s)
+            Err(s) => return Err(s),
         };
         Ok(())
     }
 
-    pub fn set_filter_type(&mut self, t: FilterType) { self.filter = t; }
-    pub fn set_cutoff(&mut self, v: f64) { self.cutoff_freq = v; }
-    pub fn set_order(&mut self, v: usize) { self.order = v; }
-    pub fn set_ripple(&mut self, v: f64) { self.ripple = v; }
-    pub fn set_attenuation(&mut self, v: f64) { self.attenuation = v; }
+    pub fn set_filter_type(&mut self, t: FilterType) {
+        self.filter = t;
+    }
+    pub fn set_cutoff(&mut self, v: f64) {
+        self.cutoff_freq = v;
+    }
+    pub fn set_order(&mut self, v: usize) {
+        self.order = v;
+    }
+    pub fn set_ripple(&mut self, v: f64) {
+        self.ripple = v;
+    }
+    pub fn set_attenuation(&mut self, v: f64) {
+        self.attenuation = v;
+    }
 
     pub fn set_demo_data(&mut self) {
         // 512 samples of a noisy sine
@@ -159,7 +177,10 @@ pub fn poly_roots_ascending_real(c_in: &[f64]) -> Result<Vec<Complex<f64>>, Stri
 
 /// Given filter coeffs in z^-1 form (b0..bN, a0..aM),
 /// return (zeros_z, poles_z) in the z-plane.
-pub fn iir_zeros_poles_z(b: &[f64], a: &[f64]) -> Result<(Vec<Complex<f64>>, Vec<Complex<f64>>), String> {
+pub fn iir_zeros_poles_z(
+    b: &[f64],
+    a: &[f64],
+) -> Result<(Vec<Complex<f64>>, Vec<Complex<f64>>), String> {
     // Roots in w = z^-1:
     let zeros_w = poly_roots_ascending_real(b)?;
     let poles_w = poly_roots_ascending_real(a)?;

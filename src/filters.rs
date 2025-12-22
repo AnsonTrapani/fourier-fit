@@ -1,8 +1,8 @@
-use scirs2::signal::filter;
 use sci_rs::signal::filter::{
-    design::{butter_dyn, DigitalFilter, FilterBandType, FilterOutputType, Sos, SosFormatFilter},
+    design::{DigitalFilter, FilterBandType, FilterOutputType, Sos, SosFormatFilter, butter_dyn},
     sosfiltfilt_dyn,
 };
+use scirs2::signal::filter;
 
 pub const NYQUIST_PERIOD: f64 = 2.;
 
@@ -95,10 +95,10 @@ pub fn butterworth_sos(
         order,
         wn,
         Some(band),
-        Some(false),                    // digital filter
-        Some(FilterOutputType::Sos),    // force SOS output
+        Some(false),                 // digital filter
+        Some(FilterOutputType::Sos), // force SOS output
         // Some(fs),                       // wn interpreted in same units as fs
-        None
+        None,
     );
 
     match df {

@@ -1,14 +1,14 @@
-use iced::{
-    widget::{button, column, pick_list, row, scrollable, text, text_input},
-    Alignment, Element, Length, Theme,
-};
-use iced::widget::Canvas;
-use iced::widget::canvas::{self, Cache, Geometry, Path, Stroke, Fill, Style, Text};
-use iced::{Color, Point, Rectangle, Renderer, Size};
-use iced::mouse;
-use iced::border::Radius;
-use num_complex::Complex;
 use fourier_fit::{App, FilterType, filters::cutoff_period_to_nyquist};
+use iced::border::Radius;
+use iced::mouse;
+use iced::widget::Canvas;
+use iced::widget::canvas::{self, Cache, Fill, Geometry, Path, Stroke, Style, Text};
+use iced::{
+    Alignment, Element, Length, Theme,
+    widget::{button, column, pick_list, row, scrollable, text, text_input},
+};
+use iced::{Color, Point, Rectangle, Renderer, Size};
+use num_complex::Complex;
 
 pub fn main() -> iced::Result {
     iced::application(Gui::default, Gui::update, Gui::view)
@@ -97,7 +97,10 @@ impl Gui {
                 let cutoff = match self.cutoff_s.trim().parse::<f64>() {
                     Ok(v) => match cutoff_period_to_nyquist(v) {
                         Ok(w) => w,
-                        Err(e) => {self.error = Some(e); return;}
+                        Err(e) => {
+                            self.error = Some(e);
+                            return;
+                        }
                     },
                     Err(e) => {
                         self.error = Some(format!("cutoff parse error: {e}"));
@@ -180,7 +183,6 @@ impl Gui {
             ]
             .spacing(12)
             .align_y(Alignment::Center),
-
             row![
                 text("Cutoff period (days):").width(Length::Shrink),
                 text_input("e.g. 0.25", &self.cutoff_s)
@@ -189,7 +191,6 @@ impl Gui {
             ]
             .spacing(12)
             .align_y(Alignment::Center),
-
             row![
                 text("Order:").width(Length::Shrink),
                 text_input("e.g. 4", &self.order_s)
@@ -206,14 +207,12 @@ impl Gui {
             ]
             .spacing(12)
             .align_y(Alignment::Center),
-
             row![
                 button("Generate demo data").on_press(Message::LoadDemo),
                 button("Calculate").on_press(Message::Calculate),
                 button("Clear").on_press(Message::ClearOutput),
             ]
             .spacing(12),
-
             if let Some(err) = &self.error {
                 text(format!("Error: {err}"))
             } else {
@@ -223,22 +222,28 @@ impl Gui {
         .spacing(14);
 
         let output = row![
-            column![text("Zeros (z-plane)"), scrollable(text(&self.zeros_out)).height(220)]
-                .width(Length::FillPortion(1))
-                .spacing(8),
-            column![text("Poles (z-plane)"), scrollable(text(&self.poles_out)).height(220)]
-                .width(Length::FillPortion(1))
-                .spacing(8),
+            column![
+                text("Zeros (z-plane)"),
+                scrollable(text(&self.zeros_out)).height(220)
+            ]
+            .width(Length::FillPortion(1))
+            .spacing(8),
+            column![
+                text("Poles (z-plane)"),
+                scrollable(text(&self.poles_out)).height(220)
+            ]
+            .width(Length::FillPortion(1))
+            .spacing(8),
         ]
         .spacing(16);
 
         let pz = Canvas::new(PzPlotView {
-        zeros: self.app.zeros.as_deref(),
-        poles: self.app.poles.as_deref(),
-        cache: &self.plot_cache,
-            })
-            .width(Length::Fill)
-            .height(300);
+            zeros: self.app.zeros.as_deref(),
+            poles: self.app.poles.as_deref(),
+            cache: &self.plot_cache,
+        })
+        .width(Length::Fill)
+        .height(300);
 
         let filtered = self
             .app
@@ -255,13 +260,11 @@ impl Gui {
         .height(300);
 
         row![
-        column![controls, output]
-            .padding(16)
-            .spacing(16),
-        column![pz, ts].padding(16)
-            .spacing(16),
-        ].into()
-        }
+            column![controls, output].padding(16).spacing(16),
+            column![pz, ts].padding(16).spacing(16),
+        ]
+        .into()
+    }
 }
 
 struct PzPlotView<'a> {
@@ -339,10 +342,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
             for k in [-1.0_f32, -0.5, 0.0, 0.5, 1.0] {
                 let x = center.x + k * plot_r;
                 frame.stroke(
-                    &Path::line(
-                        Point::new(x, origin.y),
-                        Point::new(x, origin.y + inner_h),
-                    ),
+                    &Path::line(Point::new(x, origin.y), Point::new(x, origin.y + inner_h)),
                     grid_stroke,
                 );
             }
@@ -350,10 +350,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
             for k in [-1.0_f32, -0.5, 0.0, 0.5, 1.0] {
                 let y = center.y - k * plot_r;
                 frame.stroke(
-                    &Path::line(
-                        Point::new(origin.x, y),
-                        Point::new(origin.x + inner_w, y),
-                    ),
+                    &Path::line(Point::new(origin.x, y), Point::new(origin.x + inner_w, y)),
                     grid_stroke,
                 );
             }
@@ -470,17 +467,11 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                         };
 
                         frame.stroke(
-                            &Path::line(
-                                Point::new(p.x - d, p.y - d),
-                                Point::new(p.x + d, p.y + d),
-                            ),
+                            &Path::line(Point::new(p.x - d, p.y - d), Point::new(p.x + d, p.y + d)),
                             pole_stroke,
                         );
                         frame.stroke(
-                            &Path::line(
-                                Point::new(p.x - d, p.y + d),
-                                Point::new(p.x + d, p.y - d),
-                            ),
+                            &Path::line(Point::new(p.x - d, p.y + d), Point::new(p.x + d, p.y - d)),
                             pole_stroke,
                         );
                     }
@@ -609,9 +600,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
             ymin -= pad_y;
             ymax += pad_y;
 
-            let map_x = |i: usize| -> f32 {
-                left + (i as f32) * (plot_w / ((n - 1) as f32))
-            };
+            let map_x = |i: usize| -> f32 { left + (i as f32) * (plot_w / ((n - 1) as f32)) };
             let map_y = |y: f64| -> f32 {
                 let t = ((y - ymin) / (ymax - ymin)) as f32;
                 bottom - t * plot_h
@@ -720,4 +709,9 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
 
         vec![geom]
     }
+}
+
+struct SpectralView<'a> {
+    fft_out: Option<&'a [f64]>,
+    cache: &'a Cache,
 }
