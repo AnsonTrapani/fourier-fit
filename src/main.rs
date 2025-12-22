@@ -1,3 +1,4 @@
+use fourier_fit::bode::BodeView;
 use fourier_fit::*;
 use fourier_fit::filters::cutoff_period_to_nyquist;
 use fourier_fit::background::Background;
@@ -36,6 +37,7 @@ struct Gui {
     plot_cache: Cache,
     ts_cache: Cache,
     fft_cache: Cache,
+    bode_cache: Cache,
 }
 
 impl Gui {
@@ -56,6 +58,7 @@ impl Gui {
             plot_cache: Cache::new(),
             ts_cache: Cache::new(),
             fft_cache: Cache::new(),
+            bode_cache: Cache::new(),
         }
     }
 
@@ -81,6 +84,7 @@ impl Gui {
                 self.plot_cache.clear();
                 self.ts_cache.clear();
                 self.fft_cache.clear();
+                self.bode_cache.clear();
             }
 
             Message::Calculate => {
@@ -136,6 +140,10 @@ impl Gui {
                     self.error = Some(e);
                     return;
                 }
+                if let Err(e) = self.app.generate_bode() {
+                    self.error = Some(e);
+                    return;
+                }
 
                 // Format output (poles/zeros are Option<Vec<Complex<f64>>> in your App)
                 self.zeros_out = match &self.app.zeros {
@@ -158,6 +166,7 @@ impl Gui {
                 self.plot_cache.clear();
                 self.ts_cache.clear();
                 self.fft_cache.clear();
+                self.bode_cache.clear();
             }
         }
     }
@@ -243,6 +252,15 @@ impl Gui {
         .width(Length::Fill)
         .height(Length::FillPortion(1));
 
+        let filter_tf_bode = Canvas::new(BodeView {
+            freqs: if self.app.bode_plot.is_some() {Some(&self.app.bode_plot.as_ref().unwrap().0)} else {None},
+            mag_db: if self.app.bode_plot.is_some() {Some(&self.app.bode_plot.as_ref().unwrap().1)} else {None},
+            cache: &self.bode_cache,
+            x_label: "Frequency (cycles/day)"
+        })
+        .width(Length::Fill)
+        .height(Length::FillPortion(1));
+
         let filtered = self
             .app
             .filtered_data
@@ -266,7 +284,7 @@ impl Gui {
 
         let content = row![
             column![controls, output].padding(16).spacing(16),
-            column![pz, ts, fft].padding(16).spacing(16),
+            column![row![pz, filter_tf_bode].padding(16).spacing(16), ts, fft].padding(16).spacing(16),
         ];
 
         stack![

@@ -1,6 +1,7 @@
 pub mod filters;
 pub mod frequency;
 pub mod background;
+pub mod bode;
 use filters::{
     FilterData, NYQUIST_PERIOD, butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
 };
@@ -53,7 +54,7 @@ pub struct App {
     pub attenuation: f64,
     pub poles: Option<Vec<Complex<f64>>>,
     pub zeros: Option<Vec<Complex<f64>>>,
-    pub bode_plot: Option<Vec<f64>>,
+    pub bode_plot: Option<(Vec<f64>, Vec<f64>)>,
     pub data_spectrum: Option<Vec<f64>>,
 }
 
@@ -145,6 +146,14 @@ impl App {
         } else {
             Err(String::from("Filtering not complete"))
         }
+    }
+
+    pub fn generate_bode(&mut self) -> Result<(), String> {
+        if let Some(data) = &self.filtered_data {
+            self.bode_plot = Some(bode::bode_mag_logspace(&data.b, &data.a, 1., 100));
+            return Ok(());
+        }
+        Err(String::from("Filtering not complete"))
     }
 }
 
