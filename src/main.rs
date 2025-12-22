@@ -515,7 +515,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
             let pad = 12.0_f32;
             let panel_x = pad;
             let panel_y = pad;
-            let panel_w = (w - 2.0 * pad).max(1.0);
+            let panel_w = (w - 3.0 * pad).max(1.0);
             let panel_h = (h - 2.0 * pad).max(1.0);
 
             let r = 22.0_f32;
@@ -742,7 +742,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             let pad = 12.0_f32;
             let panel_x = pad;
             let panel_y = pad;
-            let panel_w = (w - 2.0 * pad).max(1.0);
+            let panel_w = (w - 3.0 * pad).max(1.0);
             let panel_h = (h - 2.0 * pad).max(1.0);
 
             let r = 22.0_f32;
@@ -868,7 +868,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             let y_mid = 0.5 * (ymin + ymax);
             for (val, yy) in [(ymax, top), (y_mid, (top + bottom) * 0.5), (ymin, bottom)] {
                 frame.fill_text(Text {
-                    content: format!("{val:.3}"),
+                    content: fourier_fit::fmt_tick(val),
                     position: Point::new(panel_x + 6.0, yy - 6.0),
                     color: label_color,
                     size: size.into(),
@@ -950,8 +950,8 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 // value
                 let f = (t as f64) * nyq;
                 frame.fill_text(Text {
-                    content: format!("{f:.3}"),
-                    position: Point::new(x - 12.0, x_label_y),
+                    content: fourier_fit::fmt_tick(f),
+                    position: Point::new(x - 12.0, x_label_y - 10.),
                     color: label_color,
                     size: 12.0.into(),
                     ..Text::default()

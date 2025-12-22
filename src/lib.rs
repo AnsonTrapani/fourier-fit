@@ -221,3 +221,16 @@ pub enum Message {
     Calculate,
     ClearOutput,
 }
+
+pub fn fmt_tick(v: f64) -> String {
+    let av = v.abs();
+    if (av > 0.0 && av < 0.01) || av >= 10_000.0 {
+        format!("{v:.2e}")
+    } else if av >= 100.0 {
+        format!("{v:.0}")
+    } else if av >= 10.0 {
+        format!("{v:.1}")
+    } else {
+        format!("{v:.2}")
+    }
+}
