@@ -1,14 +1,14 @@
-pub mod filters;
-pub mod frequency;
 pub mod background;
 pub mod bode;
+pub mod filters;
+pub mod frequency;
 use filters::{
     FilterData, NYQUIST_PERIOD, butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
 };
+use iced::Color;
 use ndarray::Array2;
 use ndarray_linalg::EigVals;
 use num_complex::Complex;
-use iced::Color;
 
 const DEFAULT_ORDER: usize = 4;
 const DEFAULT_RIPPLE: f64 = 5.;
@@ -45,7 +45,7 @@ impl fmt::Display for FilterType {
 
 #[derive(Default)]
 pub struct App {
-    pub raw_data: Vec<f64>,
+    pub raw_data: Option<Vec<f64>>,
     pub filter: FilterType,
     pub cutoff_freq: f64,
     pub filtered_data: Option<FilterData>,
@@ -61,7 +61,7 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         Self {
-            raw_data: Vec::new(),
+            raw_data: None,
             filter: FilterType::BUTTERWORTH,
             cutoff_freq: NYQUIST_PERIOD,
             filtered_data: None,
@@ -76,27 +76,25 @@ impl App {
     }
 
     pub fn filter(&mut self) -> Result<(), String> {
+        let data = match self.raw_data.as_ref() {
+            Some(v) => v,
+            None => return Err(String::from("No data set")),
+        };
         self.filtered_data = match self.filter {
             FilterType::BUTTERWORTH => {
-                match butterworth_filter(&self.raw_data, self.cutoff_freq, self.order) {
+                match butterworth_filter(data, self.cutoff_freq, self.order) {
                     Ok(f) => Some(f),
                     Err(e) => return Err(e),
                 }
             }
             FilterType::CHEBYSHEV1 => {
-                match chebyshev_filter_1(&self.raw_data, self.cutoff_freq, self.order, self.ripple)
-                {
+                match chebyshev_filter_1(data, self.cutoff_freq, self.order, self.ripple) {
                     Ok(f) => Some(f),
                     Err(e) => return Err(e),
                 }
             }
             FilterType::CHEBYSHEV2 => {
-                match chebyshev_filter_2(
-                    &self.raw_data,
-                    self.cutoff_freq,
-                    self.order,
-                    self.attenuation,
-                ) {
+                match chebyshev_filter_2(data, self.cutoff_freq, self.order, self.attenuation) {
                     Ok(f) => Some(f),
                     Err(e) => return Err(e),
                 }
@@ -131,12 +129,14 @@ impl App {
     pub fn set_demo_data(&mut self) {
         // 512 samples of a noisy sine
         let n = 512;
-        self.raw_data = (0..n)
-            .map(|i| {
-                let t = i as f64 / n as f64;
-                (2.0 * std::f64::consts::PI * 5.0 * t).sin() + 0.15 * (2.0 * t).sin()
-            })
-            .collect();
+        self.raw_data = Some(
+            (0..n)
+                .map(|i| {
+                    let t = i as f64 / n as f64;
+                    (2.0 * std::f64::consts::PI * 5.0 * t).sin() + 0.15 * (2.0 * t).sin()
+                })
+                .collect(),
+        );
     }
 
     pub fn fft_filtered(&mut self) -> Result<(), String> {
@@ -245,8 +245,18 @@ pub fn fmt_tick(v: f64) -> String {
     }
 }
 
-pub fn panel_bg() -> Color { Color::from_rgb8(0x10, 0x10, 0x14) }     // dark panel
-pub fn panel_border() -> Color { Color::from_rgb8(0x2A, 0x2A, 0x33) } // subtle border
-pub fn grid_color() -> Color { Color::from_rgb8(0xF8, 0xEF, 0xFF) }   // dark grid
-pub fn label_color() -> Color { Color::from_rgb8(0xD6, 0xD6, 0xE2) }  // light text
-pub fn glow_purple() -> Color { Color::from_rgb8(0xB7, 0x63, 0xFF) }  // accent
+pub fn panel_bg() -> Color {
+    Color::from_rgb8(0x10, 0x10, 0x14)
+} // dark panel
+pub fn panel_border() -> Color {
+    Color::from_rgb8(0x2A, 0x2A, 0x33)
+} // subtle border
+pub fn grid_color() -> Color {
+    Color::from_rgb8(0xF8, 0xEF, 0xFF)
+} // dark grid
+pub fn label_color() -> Color {
+    Color::from_rgb8(0xD6, 0xD6, 0xE2)
+} // light text
+pub fn glow_purple() -> Color {
+    Color::from_rgb8(0xB7, 0x63, 0xFF)
+} // accent

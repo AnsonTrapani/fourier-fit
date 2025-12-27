@@ -1,5 +1,5 @@
 use iced::mouse;
-use iced::widget::canvas::{self, Geometry, Fill, Path, Stroke, Style};
+use iced::widget::canvas::{self, Fill, Geometry, Path, Stroke, Style};
 use iced::{Color, Point, Rectangle, Renderer, Size};
 // use iced::border::Radius;
 
@@ -32,16 +32,16 @@ impl<Message> canvas::Program<Message> for Background {
 
             // 2) Edge glow: many inset strokes that fade slowly toward center
             // Tune these 3 knobs:
-            let steps: usize = 140;            // more = smoother + "lasts longer"
-            let glow_thickness = 0.38;         // fraction of min(w,h) that glow extends inward
-            let max_alpha = 0.38;              // strength at the edge
-            let falloff = 1.15;                // lower (~0.9) = slower fade; higher = faster fade
+            let steps: usize = 140; // more = smoother + "lasts longer"
+            let glow_thickness = 0.38; // fraction of min(w,h) that glow extends inward
+            let max_alpha = 0.38; // strength at the edge
+            let falloff = 1.15; // lower (~0.9) = slower fade; higher = faster fade
 
             let s = w.min(h);
             let max_inset = s * glow_thickness;
 
             for i in 0..steps {
-                let t = i as f32 / (steps - 1) as f32;          // 0..1
+                let t = i as f32 / (steps - 1) as f32; // 0..1
                 let inset = t * max_inset;
 
                 // slow falloff toward center

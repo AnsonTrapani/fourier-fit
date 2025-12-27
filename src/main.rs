@@ -1,14 +1,14 @@
-use fourier_fit::bode::BodeView;
-use fourier_fit::*;
-use fourier_fit::filters::cutoff_period_to_nyquist;
 use fourier_fit::background::Background;
+use fourier_fit::bode::BodeView;
+use fourier_fit::filters::cutoff_period_to_nyquist;
+use fourier_fit::*;
 use iced::border::Radius;
 use iced::mouse;
 use iced::widget::Canvas;
 use iced::widget::canvas::{self, Cache, Fill, Geometry, Path, Stroke, Style, Text};
 use iced::{
     Alignment, Element, Length, Theme,
-    widget::{button, column, pick_list, row, scrollable, text, text_input, stack},
+    widget::{button, column, pick_list, row, scrollable, stack, text, text_input},
 };
 use iced::{Color, Point, Rectangle, Renderer, Size};
 use num_complex::Complex;
@@ -44,7 +44,7 @@ impl Gui {
     fn default() -> Self {
         let mut app = App::new();
         // Optional: populate demo data so Calculate works immediately
-        app.set_demo_data();
+        // app.set_demo_data();
 
         Self {
             app,
@@ -253,10 +253,18 @@ impl Gui {
         .height(Length::FillPortion(1));
 
         let filter_tf_bode = Canvas::new(BodeView {
-            freqs: if self.app.bode_plot.is_some() {Some(&self.app.bode_plot.as_ref().unwrap().0)} else {None},
-            mag_db: if self.app.bode_plot.is_some() {Some(&self.app.bode_plot.as_ref().unwrap().1)} else {None},
+            freqs: if self.app.bode_plot.is_some() {
+                Some(&self.app.bode_plot.as_ref().unwrap().0)
+            } else {
+                None
+            },
+            mag_db: if self.app.bode_plot.is_some() {
+                Some(&self.app.bode_plot.as_ref().unwrap().1)
+            } else {
+                None
+            },
             cache: &self.bode_cache,
-            x_label: "Frequency (cycles/day)"
+            x_label: "Frequency (cycles/day)",
         })
         .width(Length::Fill)
         .height(Length::FillPortion(1));
@@ -268,7 +276,7 @@ impl Gui {
             .map(|f| f.filtered_data.as_slice());
 
         let ts = Canvas::new(TimeSeriesPlotView {
-            raw: self.app.raw_data.as_slice(),
+            raw: self.app.raw_data.as_deref(),
             filtered,
             cache: &self.ts_cache,
         })
@@ -284,11 +292,15 @@ impl Gui {
 
         let content = row![
             column![controls, output].padding(16).spacing(16),
-            column![row![pz, filter_tf_bode].spacing(5), ts, fft].padding(16).spacing(16),
+            column![row![pz, filter_tf_bode].spacing(5), ts, fft]
+                .padding(16)
+                .spacing(16),
         ];
 
         stack![
-            Canvas::new(Background).width(Length::Fill).height(Length::Fill),
+            Canvas::new(Background)
+                .width(Length::Fill)
+                .height(Length::Fill),
             content,
         ]
         .into()
@@ -356,10 +368,32 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                 &panel,
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color { a: 0.22, ..glow_purple() }),
+                    style: Style::Solid(Color {
+                        a: 0.22,
+                        ..glow_purple()
+                    }),
                     ..Stroke::default()
                 },
             );
+
+            if self.zeros.is_none() && self.poles.is_none() {
+                let size = 14.0;
+                let x_bias = 1.3 * size;
+                let left = panel_x + 56.0; // extra space for dB labels
+                let right = panel_x + panel_w - 12.0;
+                let top = panel_y + 12.0;
+                let bottom = panel_y + panel_h - 30.0;
+                frame.fill_text(Text {
+                    content: "No data loaded".into(),
+                    position: Point::new(((left + right) * 0.5) - x_bias, (top + bottom) * 0.5),
+                    color: label_color(),
+                    size: size.into(),
+                    align_x: iced::widget::text::Alignment::Center,
+                    align_y: iced::alignment::Vertical::Center,
+                    ..Text::default()
+                });
+                return;
+            }
 
             // Now draw inside the panel area
             let inner_w = panel_w;
@@ -521,7 +555,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
 }
 
 struct TimeSeriesPlotView<'a> {
-    raw: &'a [f64],
+    raw: Option<&'a [f64]>,
     filtered: Option<&'a [f64]>,
     cache: &'a Cache,
 }
@@ -576,7 +610,10 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
                 &panel,
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color { a: 0.22, ..glow_purple() }),
+                    style: Style::Solid(Color {
+                        a: 0.22,
+                        ..glow_purple()
+                    }),
                     ..Stroke::default()
                 },
             );
@@ -590,33 +627,51 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
             let plot_w = (right - left).max(1.0);
             let plot_h = (bottom - top).max(1.0);
 
+            let raw = match self.raw {
+                Some(v) => v,
+                None => {
+                    let size = 14.0;
+                    let x_bias = 0.9 * size;
+                    frame.fill_text(Text {
+                        content: "No data loaded".into(),
+                        position: Point::new(((left + right) * 0.5) - x_bias, (top + bottom) * 0.5),
+                        color: label_color(),
+                        size: size.into(),
+                        align_x: iced::widget::text::Alignment::Center,
+                        align_y: iced::alignment::Vertical::Center,
+                        ..Text::default()
+                    });
+                    return;
+                }
+            };
+
             // Decide how many points we can draw
-            let n_raw = self.raw.len();
-            if n_raw < 2 {
-                // nothing meaningful to draw
-                frame.fill_text(Text {
-                    content: "No raw data".into(),
-                    position: Point::new((left + right) / 2., (top + bottom) / 2.),
-                    color: label_color(),
-                    size: 14.0.into(),
-                    ..Text::default()
-                });
-                return;
-            }
+            let n_raw = raw.len();
+            // if n_raw < 2 {
+            //     // nothing meaningful to draw
+            //     frame.fill_text(Text {
+            //         content: "No raw data".into(),
+            //         position: Point::new((left + right) / 2., (top + bottom) / 2.),
+            //         color: label_color(),
+            //         size: 14.0.into(),
+            //         ..Text::default()
+            //     });
+            //     return;
+            // }
 
             let n = match self.filtered {
                 Some(f) => n_raw.min(f.len()),
                 None => n_raw,
             };
-            if n < 2 {
-                return;
-            }
+            // if n < 2 {
+            //     return;
+            // }
 
             // Y range from both series (raw + filtered if present)
             let mut ymin = f64::INFINITY;
             let mut ymax = f64::NEG_INFINITY;
 
-            for &y in &self.raw[..n] {
+            for &y in &raw[..n] {
                 if y.is_finite() {
                     ymin = ymin.min(y);
                     ymax = ymax.max(y);
@@ -705,7 +760,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
 
             let mut prev = None;
             for i in 0..n {
-                let y = self.raw[i];
+                let y = raw[i];
                 if !y.is_finite() {
                     prev = None;
                     continue;
@@ -813,7 +868,10 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 &panel,
                 Stroke {
                     width: 1.0,
-                    style: Style::Solid(Color { a: 0.22, ..glow_purple() }),
+                    style: Style::Solid(Color {
+                        a: 0.22,
+                        ..glow_purple()
+                    }),
                     ..Stroke::default()
                 },
             );
@@ -829,11 +887,15 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
 
             // Decide how many points we can draw
             if self.fft_out.is_none() {
+                let size = 14.0;
+                let x_bias = 0.9 * size;
                 frame.fill_text(Text {
-                    content: "No fft data".into(),
-                    position: Point::new((left + right) / 2., (top + bottom) / 2.),
+                    content: "No data loaded".into(),
+                    position: Point::new(((left + right) * 0.5) - x_bias, (top + bottom) * 0.5),
                     color: label_color(),
-                    size: 14.0.into(),
+                    size: size.into(),
+                    align_x: iced::widget::text::Alignment::Center,
+                    align_y: iced::alignment::Vertical::Center,
                     ..Text::default()
                 });
                 return;
@@ -927,12 +989,16 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
 
             // --- bars ---
             // Choose a baseline: 0 if it's within range, else ymin
-            let baseline_val = if ymin <= 0.0 && 0.0 <= ymax { 0.0 } else { ymin };
+            let baseline_val = if ymin <= 0.0 && 0.0 <= ymax {
+                0.0
+            } else {
+                ymin
+            };
             let baseline_y = map_y(baseline_val);
 
             // Bar sizing
             let dx = plot_w / (n as f32);
-            let gap = (dx * 0.15).min(3.0);           // small spacing between bars
+            let gap = (dx * 0.15).min(3.0); // small spacing between bars
             let bar_w = (dx - gap).max(1.0);
 
             let bar_color = Color::from_rgb8(0x00, 0x66, 0xCC);
@@ -961,7 +1027,9 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 };
 
                 // Skip ultra-tiny bars if you want:
-                if height <= max_bar_height as f32 * 0.01f32 { continue; }
+                if height <= max_bar_height as f32 * 0.01f32 {
+                    continue;
+                }
 
                 let rect = Path::rectangle(Point::new(x, top_y), Size::new(bar_w, height.max(1.0)));
                 frame.fill(
@@ -989,7 +1057,10 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 let x = left + t * plot_w;
 
                 // tick mark
-                frame.stroke(&Path::line(Point::new(x, bottom), Point::new(x, bottom + tick_len)), tick_stroke);
+                frame.stroke(
+                    &Path::line(Point::new(x, bottom), Point::new(x, bottom + tick_len)),
+                    tick_stroke,
+                );
 
                 // value
                 let f = (t as f64) * nyq;
