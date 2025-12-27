@@ -300,14 +300,15 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
 
                 let wick_x_for = |i: f32| -> f32 { x_for(i) + candle_w * 0.5 };
 
-                for c in candles {
+                for (i, c) in candles.iter().enumerate() {
                     // Skip bad data early (VERY important for wgpu stability)
                     if !(c.open.is_finite() && c.close.is_finite()) {
                         continue;
                     }
 
-                    let x0 = x_for(c.t as f32);
-                    let xc = wick_x_for(c.t as f32);
+                    let i = i as f32;
+                    let x0 = x_for(i as f32);
+                    let xc = wick_x_for(i as f32);
 
                     let y_open = map_y(c.open);
                     let y_close = map_y(c.close);
@@ -452,7 +453,8 @@ pub fn vec_to_candles(data: &[f64], num_per_candle: usize) -> Result<Vec<Candle>
     }
     let mut candles: Vec<Candle> =
         Vec::with_capacity((data.len() as f64 / num_per_candle as f64).ceil() as usize);
-    for (i, chunk) in data.chunks_exact(num_per_candle).enumerate() {
+    let chunks: Vec<&[f64]> = (0..data.len()).step_by(num_per_candle).map(|i| &data[i..(i + num_per_candle + 1).min(data.len())]).collect();
+    for (i, &chunk) in chunks.iter().enumerate() {
         candles.push(Candle {
             t: i as f64,
             open: chunk[0],
