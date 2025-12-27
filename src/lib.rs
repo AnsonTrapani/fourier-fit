@@ -1,5 +1,6 @@
 pub mod background;
 pub mod bode;
+pub mod candles;
 pub mod filters;
 pub mod frequency;
 use filters::{
@@ -9,12 +10,13 @@ use iced::Color;
 use ndarray::Array2;
 use ndarray_linalg::EigVals;
 use num_complex::Complex;
+use std::fmt;
+
+use crate::candles::{Candle, vec_to_candles};
 
 const DEFAULT_ORDER: usize = 4;
 const DEFAULT_RIPPLE: f64 = 5.;
 const DEFAULT_ATTENUATION: f64 = 40.;
-
-use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FilterType {
@@ -56,6 +58,7 @@ pub struct App {
     pub zeros: Option<Vec<Complex<f64>>>,
     pub bode_plot: Option<(Vec<f64>, Vec<f64>)>,
     pub data_spectrum: Option<Vec<f64>>,
+    pub candles: Option<Vec<Candle>>,
 }
 
 impl App {
@@ -72,6 +75,7 @@ impl App {
             zeros: None,
             bode_plot: None,
             data_spectrum: None,
+            candles: None,
         }
     }
 
@@ -107,6 +111,7 @@ impl App {
             Ok((z, p)) => (Some(z), Some(p)),
             Err(s) => return Err(s),
         };
+        self.candles = vec_to_candles(self.raw_data.as_deref().unwrap(), 2).ok();
         Ok(())
     }
 

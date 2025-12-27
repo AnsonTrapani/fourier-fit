@@ -1,5 +1,6 @@
 use fourier_fit::background::Background;
 use fourier_fit::bode::BodeView;
+use fourier_fit::candles::{CandlePanelView, vec_to_candles};
 use fourier_fit::filters::cutoff_period_to_nyquist;
 use fourier_fit::*;
 use iced::border::Radius;
@@ -38,20 +39,21 @@ struct Gui {
     ts_cache: Cache,
     fft_cache: Cache,
     bode_cache: Cache,
+    candles_cache: Cache,
 }
 
 impl Gui {
     fn default() -> Self {
-        let mut app = App::new();
+        let app = App::new();
         // Optional: populate demo data so Calculate works immediately
         // app.set_demo_data();
 
         Self {
             app,
-            cutoff_s: "4.2".into(),
-            order_s: "4".into(),
-            ripple_s: "5".into(),
-            attenuation_s: "40".into(),
+            cutoff_s: "".into(),
+            order_s: "".into(),
+            ripple_s: "".into(),
+            attenuation_s: "".into(),
             error: None,
             zeros_out: String::new(),
             poles_out: String::new(),
@@ -59,6 +61,7 @@ impl Gui {
             ts_cache: Cache::new(),
             fft_cache: Cache::new(),
             bode_cache: Cache::new(),
+            candles_cache: Cache::new(),
         }
     }
 
@@ -85,6 +88,7 @@ impl Gui {
                 self.ts_cache.clear();
                 self.fft_cache.clear();
                 self.bode_cache.clear();
+                self.candles_cache.clear();
             }
 
             Message::Calculate => {
@@ -167,6 +171,7 @@ impl Gui {
                 self.ts_cache.clear();
                 self.fft_cache.clear();
                 self.bode_cache.clear();
+                self.candles_cache.clear();
             }
         }
     }
@@ -194,7 +199,7 @@ impl Gui {
                 text("Cutoff period (days):").width(Length::Shrink),
                 text_input("e.g. 0.25", &self.cutoff_s)
                     .on_input(Message::CutoffChanged)
-                    .width(180),
+                    .width(Length::FillPortion(1)),
             ]
             .spacing(12)
             .align_y(Alignment::Center),
@@ -202,15 +207,15 @@ impl Gui {
                 text("Order:").width(Length::Shrink),
                 text_input("e.g. 4", &self.order_s)
                     .on_input(Message::OrderChanged)
-                    .width(120),
+                    .width(Length::FillPortion(1)),
                 text("Ripple (dB):").width(Length::Shrink),
                 text_input("e.g. 5", &self.ripple_s)
                     .on_input(Message::RippleChanged)
-                    .width(120),
+                    .width(Length::FillPortion(1)),
                 text("Attenuation (dB):").width(Length::Shrink),
                 text_input("e.g. 40", &self.attenuation_s)
                     .on_input(Message::AttenuationChanged)
-                    .width(120),
+                    .width(Length::FillPortion(1)),
             ]
             .spacing(12)
             .align_y(Alignment::Center),
@@ -227,22 +232,6 @@ impl Gui {
             }
         ]
         .spacing(14);
-
-        let output = row![
-            column![
-                text("Zeros (z-plane)"),
-                scrollable(text(&self.zeros_out)).height(220)
-            ]
-            .width(Length::FillPortion(1))
-            .spacing(8),
-            column![
-                text("Poles (z-plane)"),
-                scrollable(text(&self.poles_out)).height(220)
-            ]
-            .width(Length::FillPortion(1))
-            .spacing(8),
-        ]
-        .spacing(16);
 
         let pz = Canvas::new(PzPlotView {
             zeros: self.app.zeros.as_deref(),
@@ -290,8 +279,16 @@ impl Gui {
         .width(Length::Fill)
         .height(Length::FillPortion(1));
 
+        let candle_panel = Canvas::new(CandlePanelView {
+            zeros: self.app.zeros.as_deref(),
+            poles: self.app.poles.as_deref(),
+            candles: self.app.candles.as_deref(), // TODO: NEED TO CHANGE THIS
+            cache: &self.candles_cache,
+            title: "Candle View",
+        }).width(Length::Fill).height(Length::Fill);
+
         let content = row![
-            column![controls, output].padding(16).spacing(16),
+            column![controls, candle_panel].padding(16).spacing(16),
             column![row![pz, filter_tf_bode].spacing(5), ts, fft]
                 .padding(16)
                 .spacing(16),
