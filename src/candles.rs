@@ -320,7 +320,7 @@ pub fn vec_to_candles(data: &[f64], num_per_candle: usize) -> Result<Vec<Candle>
                 .fold(f64::NEG_INFINITY, |prev, curr| prev.max(*curr)),
             low: chunk
                 .iter()
-                .fold(f64::NEG_INFINITY, |prev, curr| prev.min(*curr)),
+                .fold(f64::INFINITY, |prev, curr| prev.min(*curr)),
         })
     }
     Ok(candles)

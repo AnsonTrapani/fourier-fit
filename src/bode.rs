@@ -3,25 +3,25 @@ use iced::widget::canvas;
 use iced::widget::canvas::{Cache, Fill, Frame, Geometry, Path, Stroke, Text};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
 
-fn fmt_tick_bode(v: f64) -> String {
-    if !v.is_finite() {
-        return "NaN".into();
-    }
-    if v == 0.0 {
-        return "0".into();
-    }
-    let av = v.abs();
-    if av >= 1e3 || av < 1e-2 {
-        // scientific-ish, but compact
-        let e = av.log10().floor() as i32;
-        let m = v / 10f64.powi(e);
-        format!("{:.2}e{}", m, e)
-    } else if av >= 10.0 {
-        format!("{:.1}", v)
-    } else {
-        format!("{:.3}", v)
-    }
-}
+// fn fmt_tick_bode(v: f64) -> String {
+//     if !v.is_finite() {
+//         return "NaN".into();
+//     }
+//     if v == 0.0 {
+//         return "0".into();
+//     }
+//     let av = v.abs();
+//     if av >= 1e3 || av < 1e-2 {
+//         // scientific-ish, but compact
+//         let e = av.log10().floor() as i32;
+//         let m = v / 10f64.powi(e);
+//         format!("{:.2}e{}", m, e)
+//     } else if av >= 10.0 {
+//         format!("{:.1}", v)
+//     } else {
+//         format!("{:.3}", v)
+//     }
+// }
 
 /// Compute log-spaced digital Bode magnitude (linear magnitude) for an IIR/FIR defined by b,a.
 /// - `fs` is samples per unit-time (e.g. fs=1.0 => 1 sample/day => x-axis in cycles/day)

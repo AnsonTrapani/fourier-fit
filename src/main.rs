@@ -1,6 +1,6 @@
 use fourier_fit::background::Background;
 use fourier_fit::bode::BodeView;
-use fourier_fit::candles::{CandlePanelView, vec_to_candles};
+use fourier_fit::candles::CandlePanelView;
 use fourier_fit::filters::cutoff_period_to_nyquist;
 use fourier_fit::*;
 use iced::border::Radius;
@@ -9,7 +9,7 @@ use iced::widget::Canvas;
 use iced::widget::canvas::{self, Cache, Fill, Geometry, Path, Stroke, Style, Text};
 use iced::{
     Alignment, Element, Length, Theme,
-    widget::{button, column, pick_list, row, scrollable, stack, text, text_input},
+    widget::{button, column, pick_list, row, stack, text, text_input},
 };
 use iced::{Color, Point, Rectangle, Renderer, Size};
 use num_complex::Complex;
