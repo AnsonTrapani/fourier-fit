@@ -2,6 +2,7 @@ use crate::Message;
 use iced::widget::canvas;
 use iced::widget::canvas::{Cache, Fill, Frame, Geometry, Path, Stroke, Text};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
+use std::default::Default;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Candle {
@@ -324,4 +325,34 @@ pub fn vec_to_candles(data: &[f64], num_per_candle: usize) -> Result<Vec<Candle>
         })
     }
     Ok(candles)
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CandleLengths {
+    #[default]
+    Weekly,
+    Monthly,
+    Yearly,
+}
+
+impl From<CandleLengths> for usize {
+
+    fn from(value: CandleLengths) -> Self {
+        match value {
+            CandleLengths::Weekly => 7,
+            CandleLengths::Monthly => 30,
+            CandleLengths::Yearly => 365,
+        }
+    }
+}
+
+impl std::fmt::Display for CandleLengths {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            CandleLengths::Weekly => "Weekly",
+            CandleLengths::Monthly => "Monthly",
+            CandleLengths::Yearly => "Yearly",
+        };
+        write!(f, "{s}")
+    }
 }

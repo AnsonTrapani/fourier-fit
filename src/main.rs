@@ -1,6 +1,6 @@
 use fourier_fit::background::Background;
 use fourier_fit::bode::BodeView;
-use fourier_fit::candles::CandlePanelView;
+use fourier_fit::candles::{CandlePanelView, CandleLengths};
 use fourier_fit::filters::cutoff_period_to_nyquist;
 use fourier_fit::*;
 use iced::border::Radius;
@@ -69,6 +69,9 @@ impl Gui {
         match message {
             Message::FilterChanged(t) => {
                 self.app.set_filter_type(t);
+            }
+            Message::CandleLengthsChanged(t) => {
+                self.app.candle_length = t;
             }
             Message::CutoffChanged(s) => self.cutoff_s = s,
             Message::OrderChanged(s) => self.order_s = s,
@@ -182,6 +185,11 @@ impl Gui {
             FilterType::CHEBYSHEV1,
             FilterType::CHEBYSHEV2,
         ];
+        let candle_options = [
+            CandleLengths::Weekly,
+            CandleLengths::Monthly,
+            CandleLengths::Yearly,
+        ];
 
         let controls = column![
             row![
@@ -192,12 +200,14 @@ impl Gui {
                     Message::FilterChanged
                 )
                 .width(Length::Fill),
+                text("Candle Lengths:").width(Length::Shrink),
+                pick_list(candle_options, Some(self.app.candle_length), Message::CandleLengthsChanged)
             ]
             .spacing(12)
             .align_y(Alignment::Center),
             row![
                 text("Cutoff period (days):").width(Length::Shrink),
-                text_input("e.g. 0.25", &self.cutoff_s)
+                text_input("e.g. 4.2", &self.cutoff_s)
                     .on_input(Message::CutoffChanged)
                     .width(Length::FillPortion(1)),
             ]
@@ -282,7 +292,7 @@ impl Gui {
         let candle_panel = Canvas::new(CandlePanelView {
             zeros: self.app.zeros.as_deref(),
             poles: self.app.poles.as_deref(),
-            candles: self.app.candles.as_deref(), // TODO: NEED TO CHANGE THIS
+            candles: self.app.candles.as_deref(),
             cache: &self.candles_cache,
             title: "Candle View",
         }).width(Length::Fill).height(Length::Fill);

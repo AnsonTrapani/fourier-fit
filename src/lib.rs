@@ -12,7 +12,7 @@ use ndarray_linalg::EigVals;
 use num_complex::Complex;
 use std::fmt;
 
-use crate::candles::{Candle, vec_to_candles};
+use crate::candles::{Candle, CandleLengths, vec_to_candles};
 
 const DEFAULT_ORDER: usize = 4;
 const DEFAULT_RIPPLE: f64 = 5.;
@@ -59,6 +59,7 @@ pub struct App {
     pub bode_plot: Option<(Vec<f64>, Vec<f64>)>,
     pub data_spectrum: Option<Vec<f64>>,
     pub candles: Option<Vec<Candle>>,
+    pub candle_length: CandleLengths
 }
 
 impl App {
@@ -76,6 +77,7 @@ impl App {
             bode_plot: None,
             data_spectrum: None,
             candles: None,
+            candle_length: CandleLengths::Weekly,
         }
     }
 
@@ -111,7 +113,7 @@ impl App {
             Ok((z, p)) => (Some(z), Some(p)),
             Err(s) => return Err(s),
         };
-        self.candles = vec_to_candles(self.raw_data.as_deref().unwrap(), 2).ok();
+        self.candles = vec_to_candles(self.raw_data.as_deref().unwrap(), self.candle_length.into()).ok();
         Ok(())
     }
 
@@ -235,6 +237,7 @@ pub enum Message {
     LoadDemo,
     Calculate,
     ClearOutput,
+    CandleLengthsChanged(CandleLengths),
 }
 
 pub fn fmt_tick(v: f64) -> String {
