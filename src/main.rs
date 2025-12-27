@@ -338,8 +338,8 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
-            let w = bounds.width as f32;
-            let h = bounds.height as f32;
+            let w = bounds.width;
+            let h = bounds.height;
 
             // Panel inset (so we don't draw into the dark background region)
             let pad = 12.0_f32;
@@ -585,8 +585,8 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
-            let w = bounds.width as f32;
-            let h = bounds.height as f32;
+            let w = bounds.width;
+            let h = bounds.height;
 
             let pad = 12.0_f32;
             let panel_x = pad;
@@ -772,8 +772,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
             };
 
             let mut prev = None;
-            for i in 0..n {
-                let y = raw[i];
+            for (i, &y) in raw.iter().enumerate().take(n) {
                 if !y.is_finite() {
                     prev = None;
                     continue;
@@ -794,8 +793,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
                 };
 
                 let mut prev = None;
-                for i in 0..n {
-                    let y = f[i];
+                for (i, &y) in f.iter().enumerate().take(n) {
                     if !y.is_finite() {
                         prev = None;
                         continue;
@@ -843,8 +841,8 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
-            let w = bounds.width as f32;
-            let h = bounds.height as f32;
+            let w = bounds.width;
+            let h = bounds.height;
 
             let pad = 12.0_f32;
             let panel_x = pad;
@@ -1021,8 +1019,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 max_bar_height = f64::max(max_bar_height, num);
             }
 
-            for i in 1..n {
-                let y = fft_out[i];
+            for (i, &y) in fft_out.iter().enumerate().skip(1) {
                 if !y.is_finite() {
                     continue;
                 }

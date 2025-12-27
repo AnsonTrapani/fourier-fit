@@ -170,24 +170,6 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 // Axis label anchor (still inside the panel)
                 let axis_x = plot_r + 8.0; // where tick labels start
 
-                // Plot border + light grid
-                // let grid = Stroke {
-                //     width: 1.0,
-                //     style: iced::widget::canvas::Style::Solid(Color::from_rgba8(
-                //         0xFF, 0xFF, 0xFF, 0.10,
-                //     )),
-                //     ..Stroke::default()
-                // };
-
-                // for k in 0..=4 {
-                //     let t = k as f32 / 4.0;
-                //     let yy = plot_t + t * plot_h;
-                //     frame.stroke(
-                //         &Path::line(Point::new(plot_l, yy), Point::new(plot_r, yy)),
-                //         grid,
-                //     );
-                // }
-
                 frame.stroke(
                     &Path::rectangle(Point::new(plot_l, plot_t), Size::new(plot_w, plot_h)),
                     Stroke {
@@ -303,10 +285,6 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                     },
                 );
 
-                // let map_x = |t: f64| -> f32 {
-                //     let u = ((t - tmin) / (tmax - tmin)) as f32;
-                //     plot_l + u.clamp(0.0, 1.0) * plot_w
-                // };
                 let map_y = |v: f64| -> f32 {
                     let u = ((v - vmin) / (vmax - vmin)) as f32;
                     plot_b - u.clamp(0.0, 1.0) * plot_h
@@ -318,7 +296,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 let candle_w = (slot_w * 0.70).clamp(2.0, 40.0);
                 let gap = slot_w - candle_w;
 
-                let x_for = |i: f32| -> f32 { plot_l + (i as f32) * slot_w + gap * 0.5 };
+                let x_for = |i: f32| -> f32 { plot_l + i * slot_w + gap * 0.5 };
 
                 let wick_x_for = |i: f32| -> f32 { x_for(i) + candle_w * 0.5 };
 

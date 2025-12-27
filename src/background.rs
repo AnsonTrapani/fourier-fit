@@ -17,8 +17,8 @@ impl<Message> canvas::Program<Message> for Background {
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let geom = canvas::Cache::new().draw(renderer, bounds.size(), |frame| {
-            let w = bounds.width as f32;
-            let h = bounds.height as f32;
+            let w = bounds.width;
+            let h = bounds.height;
 
             // 1) Base: dark, slightly purple-tinted (so "starts darker")
             let base = Path::rectangle(Point::ORIGIN, Size::new(w, h));
