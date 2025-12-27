@@ -239,65 +239,108 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 vmin -= pady;
                 vmax += pady;
 
-                let map_x = |t: f64| -> f32 {
-                    let u = ((t - tmin) / (tmax - tmin)) as f32;
-                    plot_l + u.clamp(0.0, 1.0) * plot_w
-                };
+                // let map_x = |t: f64| -> f32 {
+                //     let u = ((t - tmin) / (tmax - tmin)) as f32;
+                //     plot_l + u.clamp(0.0, 1.0) * plot_w
+                // };
                 let map_y = |v: f64| -> f32 {
                     let u = ((v - vmin) / (vmax - vmin)) as f32;
                     plot_b - u.clamp(0.0, 1.0) * plot_h
                 };
 
                 // Candle width heuristic
-                let n = candles.len().max(2) as f32;
-                let cw = (plot_w / n).clamp(2.0, 10.0);
-                let wick = Stroke {
-                    width: 1.0,
-                    style: iced::widget::canvas::Style::Solid(Color::from_rgba8(
-                        0xFF, 0xFF, 0xFF, 0.55,
-                    )),
-                    ..Stroke::default()
+                let n = candles.len().max(1) as f32;
+                let slot_w = (plot_w / n).max(1.0);
+                let candle_w = (slot_w * 0.70).clamp(2.0, 40.0);
+                let gap = slot_w - candle_w;
+
+                let x_for = |i: f32| -> f32 {
+                    plot_l + (i as f32) * slot_w + gap * 0.5
+                };
+
+                let wick_x_for = |i: f32| -> f32 {
+                    x_for(i) + candle_w * 0.5
                 };
 
                 for c in candles {
-                    let x = map_x(c.t);
+                    // Skip bad data early (VERY important for wgpu stability)
+    if !(c.open.is_finite()
+        && c.high.is_finite()
+        && c.low.is_finite()
+        && c.close.is_finite())
+    {
+        continue;
+    }
 
-                    let y_high = map_y(c.high);
-                    let y_low = map_y(c.low);
-                    let y_open = map_y(c.open);
-                    let y_close = map_y(c.close);
+    let x0 = x_for(c.t as f32);
+    let xc = wick_x_for(c.t as f32);
 
-                    // wick
-                    frame.stroke(
-                        &Path::line(Point::new(x, y_high), Point::new(x, y_low)),
-                        wick,
-                    );
+    let y_open  = map_y(c.open);
+    let y_close = map_y(c.close);
+    let y_high  = map_y(c.high);
+    let y_low   = map_y(c.low);
 
-                    // body
-                    let (top_y, bot_y) = if y_close < y_open {
-                        (y_close, y_open)
-                    } else {
-                        (y_open, y_close)
-                    };
-                    let body_h = (bot_y - top_y).max(1.0);
+    if !(y_open.is_finite()
+        && y_close.is_finite()
+        && y_high.is_finite()
+        && y_low.is_finite())
+    {
+        continue;
+    }
 
-                    let up = c.close >= c.open;
-                    let body_color = if up {
-                        Color::from_rgb8(0x33, 0xD1, 0x7A)
-                    } else {
-                        Color::from_rgb8(0xFF, 0x4D, 0x5A)
-                    };
+    // Determine candle direction
+    let up = c.close >= c.open;
 
-                    let body =
-                        Path::rectangle(Point::new(x - cw * 0.5, top_y), Size::new(cw, body_h));
+    let color = if up {
+        Color::from_rgba8(0x2E, 0xE5, 0x9D, 0.90) // green
+    } else {
+        Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90) // red
+    };
 
-                    frame.fill(
-                        &body,
-                        Fill {
-                            style: iced::widget::canvas::Style::Solid(body_color),
-                            ..Fill::default()
-                        },
-                    );
+    // --------------------
+    // Wick
+    // --------------------
+    frame.stroke(
+        &Path::line(
+            Point::new(xc, y_high),
+            Point::new(xc, y_low),
+        ),
+        Stroke {
+            width: 1.0,
+            style: iced::widget::canvas::Style::Solid(color),
+            ..Stroke::default()
+        },
+    );
+
+    // --------------------
+    // Body
+    // --------------------
+    let y_top = y_open.min(y_close);
+    let y_bot = y_open.max(y_close);
+    let body_h = (y_bot - y_top).max(1.0);
+
+    let body = Path::rectangle(
+        Point::new(x0, y_top),
+        Size::new(candle_w, body_h),
+    );
+
+    frame.fill(
+        &body,
+        Fill {
+            style: iced::widget::canvas::Style::Solid(color),
+            ..Fill::default()
+        },
+    );
+
+    // Optional outline (nice on dark backgrounds)
+    frame.stroke(
+        &body,
+        Stroke {
+            width: 1.0,
+            style: iced::widget::canvas::Style::Solid(Color { a: 0.95, ..color }),
+            ..Stroke::default()
+        },
+    );
                 }
             });
 
