@@ -156,29 +156,37 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
 
                 // Candle plot region
                 let plot_l = inner_l;
-                let plot_r = inner_r;
+
+                // Reserve space INSIDE the panel for right-side axis labels
+                let y_axis_gutter = 64.0_f32; // tweak (56..80)
+                let plot_r = inner_r - y_axis_gutter;
+
                 let plot_t = header_b + 10.0;
                 let plot_b = inner_b;
+
                 let plot_w = (plot_r - plot_l).max(1.0);
                 let plot_h = (plot_b - plot_t).max(1.0);
 
-                // Plot border + light grid
-                let grid = Stroke {
-                    width: 1.0,
-                    style: iced::widget::canvas::Style::Solid(Color::from_rgba8(
-                        0xFF, 0xFF, 0xFF, 0.10,
-                    )),
-                    ..Stroke::default()
-                };
+                // Axis label anchor (still inside the panel)
+                let axis_x = plot_r + 8.0; // where tick labels start
 
-                for k in 0..=4 {
-                    let t = k as f32 / 4.0;
-                    let yy = plot_t + t * plot_h;
-                    frame.stroke(
-                        &Path::line(Point::new(plot_l, yy), Point::new(plot_r, yy)),
-                        grid,
-                    );
-                }
+                // Plot border + light grid
+                // let grid = Stroke {
+                //     width: 1.0,
+                //     style: iced::widget::canvas::Style::Solid(Color::from_rgba8(
+                //         0xFF, 0xFF, 0xFF, 0.10,
+                //     )),
+                //     ..Stroke::default()
+                // };
+
+                // for k in 0..=4 {
+                //     let t = k as f32 / 4.0;
+                //     let yy = plot_t + t * plot_h;
+                //     frame.stroke(
+                //         &Path::line(Point::new(plot_l, yy), Point::new(plot_r, yy)),
+                //         grid,
+                //     );
+                // }
 
                 frame.stroke(
                     &Path::rectangle(Point::new(plot_l, plot_t), Size::new(plot_w, plot_h)),
@@ -235,6 +243,59 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 let pady = 0.06 * (vmax - vmin);
                 vmin -= pady;
                 vmax += pady;
+
+                let grid = Stroke {
+    width: 1.0,
+    style: iced::widget::canvas::Style::Solid(Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.10)),
+    ..Stroke::default()
+};
+
+// Choose number of ticks like a chart
+let y_ticks = 9usize; // 7..11 feels good
+let tick_len = 6.0_f32;
+
+for k in 0..y_ticks {
+    let t = k as f32 / (y_ticks - 1) as f32;  // 0..1 top->bottom
+    let yy = plot_t + t * plot_h;
+
+    // Horizontal grid line across plot
+    frame.stroke(
+        &Path::line(Point::new(plot_l, yy), Point::new(plot_r, yy)),
+        grid,
+    );
+
+    // Convert back to value for label (top is vmax, bottom is vmin)
+    let val = vmax - (t as f64) * (vmax - vmin);
+
+    // Small tick mark on the right edge
+    frame.stroke(
+        &Path::line(Point::new(plot_r, yy), Point::new(plot_r + tick_len, yy)),
+        Stroke {
+            width: 1.0,
+            style: iced::widget::canvas::Style::Solid(Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.35)),
+            ..Stroke::default()
+        },
+    );
+
+    // Tick label (in the gutter)
+    frame.fill_text(Text {
+        content: format!("{:.2}", val),
+        position: Point::new(axis_x + tick_len + 2.0, yy - 7.0),
+        color: Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.65),
+        size: 11.0.into(),
+        ..Text::default()
+    });
+}
+
+// Plot border
+frame.stroke(
+    &Path::rectangle(Point::new(plot_l, plot_t), Size::new(plot_w, plot_h)),
+    Stroke {
+        width: 1.0,
+        style: iced::widget::canvas::Style::Solid(Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.18)),
+        ..Stroke::default()
+    },
+);
 
                 // let map_x = |t: f64| -> f32 {
                 //     let u = ((t - tmin) / (tmax - tmin)) as f32;
@@ -340,37 +401,65 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 // ------------------------------------
 // Last-close dashed reference line
 // ------------------------------------
-if let Some(last) = candles.iter().rev().find(|c|
-    c.close.is_finite()
-) {
+if let Some(last) = candles.iter().rev().find(|c| c.close.is_finite() && c.open.is_finite()) {
     let y_last = map_y(last.close);
 
     if y_last.is_finite() {
-        let tick_len = 6.0;
+        let color = if last.close >= last.open {
+            Color::from_rgba8(0x2E, 0xE5, 0x9D, 0.90)
+        } else {
+            Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90)
+        };
+
+        // dashed line across plot (stops at plot_r)
         frame.stroke(
-            &Path::line(
-                Point::new(plot_l, y_last),
-                Point::new(plot_r, y_last),
-            ),
+            &Path::line(Point::new(plot_l, y_last), Point::new(plot_r, y_last)),
             Stroke {
                 width: 1.0,
-                style: iced::widget::canvas::Style::Solid(
-                    if last.close > last.open {Color::from_rgba8(0x2E, 0xE5, 0x9D, 0.90)} else {Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90)},
-                ),
-                // Very fine dash pattern
+                style: iced::widget::canvas::Style::Solid(color),
                 line_dash: iced::widget::canvas::LineDash {
-                    segments: &[2.0, 4.0], // dash, gap
+                    segments: &[2.0, 4.0],
                     offset: 0,
                 },
                 ..Stroke::default()
             },
         );
-        // Label
+
+        // label "pill" in the gutter; clamp y so it stays visible
+        let label = format!("{:.2}", last.close);
+        let font_px = 11.0_f32;
+
+        // crude text metrics (since iced 0.14 canvas renderer doesn't expose measure)
+        let approx_w = (label.chars().count() as f32) * font_px * 0.62;
+        let pad_x = 6.0_f32;
+        let pad_y = 3.0_f32;
+        let pill_w = approx_w + 2.0 * pad_x;
+        let pill_h = font_px + 2.0 * pad_y;
+
+        let mut pill_y = y_last - pill_h * 0.5;
+        pill_y = pill_y.clamp(plot_t, plot_b - pill_h);
+
+        let pill_x = (plot_r + 8.0).min(inner_r - pill_w - 2.0);
+
+        // background
+        frame.fill(
+            &Path::rounded_rectangle(
+                Point::new(pill_x, pill_y),
+                Size::new(pill_w, pill_h),
+                iced::border::Radius::from(6.0),
+            ),
+            Fill {
+                style: iced::widget::canvas::Style::Solid(color),
+                ..Fill::default()
+            },
+        );
+
+        // text
         frame.fill_text(Text {
-            content: format!("{:.3}", last.close),
-            position: Point::new(plot_r + tick_len + 4.0, y_last -7.),
-            color: Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.75),
-            size: 11.0.into(),
+            content: label,
+            position: Point::new(pill_x + pad_x, pill_y + pad_y - 1.0),
+            color: Color::from_rgba8(0x00, 0x00, 0x00, 0.92),
+            size: font_px.into(),
             ..Text::default()
         });
     }
