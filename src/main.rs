@@ -14,6 +14,8 @@ use iced::{
 use iced::{Color, Point, Rectangle, Renderer, Size};
 use num_complex::Complex;
 
+const BOLD: iced::Font = iced::Font::with_name("Inter ExtraBold");
+
 pub fn main() -> iced::Result {
     iced::application(Gui::default, Gui::update, Gui::view)
         .theme(Theme::Dark)
@@ -304,10 +306,10 @@ impl Gui {
         .height(Length::Fill);
 
         let content = row![
-            column![controls, candle_panel].padding(16).spacing(16),
-            column![row![pz, filter_tf_bode].spacing(5), ts, fft]
+            column![controls, text("Candle View").font(BOLD), candle_panel].padding(16).spacing(5),
+            column![row![column![text("Pole/Zero Plot").font(BOLD), pz], column![text("Bode Plot").font(BOLD), filter_tf_bode]].spacing(5), text("Time Domain").font(BOLD), ts, text("Frequency Domain").font(BOLD), fft]
                 .padding(16)
-                .spacing(16),
+                .spacing(5),
         ];
 
         stack![
