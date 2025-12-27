@@ -227,9 +227,6 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 if !(tmin.is_finite() && tmax.is_finite() && vmin.is_finite() && vmax.is_finite()) {
                     return;
                 }
-                if (tmax - tmin).abs() < 1e-12 {
-                    tmax = tmin + 1.0;
-                }
                 if (vmax - vmin).abs() < 1e-12 {
                     vmax = vmin + 1.0;
                 }
@@ -265,8 +262,6 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 for c in candles {
                     // Skip bad data early (VERY important for wgpu stability)
     if !(c.open.is_finite()
-        && c.high.is_finite()
-        && c.low.is_finite()
         && c.close.is_finite())
     {
         continue;
@@ -342,6 +337,44 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
         },
     );
                 }
+                // ------------------------------------
+// Last-close dashed reference line
+// ------------------------------------
+if let Some(last) = candles.iter().rev().find(|c|
+    c.close.is_finite()
+) {
+    let y_last = map_y(last.close);
+
+    if y_last.is_finite() {
+        let tick_len = 6.0;
+        frame.stroke(
+            &Path::line(
+                Point::new(plot_l, y_last),
+                Point::new(plot_r, y_last),
+            ),
+            Stroke {
+                width: 1.0,
+                style: iced::widget::canvas::Style::Solid(
+                    if last.close > last.open {Color::from_rgba8(0x2E, 0xE5, 0x9D, 0.90)} else {Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90)},
+                ),
+                // Very fine dash pattern
+                line_dash: iced::widget::canvas::LineDash {
+                    segments: &[2.0, 4.0], // dash, gap
+                    offset: 0,
+                },
+                ..Stroke::default()
+            },
+        );
+        // Label
+        frame.fill_text(Text {
+            content: format!("{:.3}", last.close),
+            position: Point::new(plot_r + tick_len + 4.0, y_last -7.),
+            color: Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.75),
+            size: 11.0.into(),
+            ..Text::default()
+        });
+    }
+}
             });
 
         vec![geom]
