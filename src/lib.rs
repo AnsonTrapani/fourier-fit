@@ -59,7 +59,7 @@ pub struct App {
     pub bode_plot: Option<(Vec<f64>, Vec<f64>)>,
     pub data_spectrum: Option<Vec<f64>>,
     pub candles: Option<Vec<Candle>>,
-    pub candle_length: CandleLengths
+    pub candle_length: CandleLengths,
 }
 
 impl App {
@@ -113,7 +113,8 @@ impl App {
             Ok((z, p)) => (Some(z), Some(p)),
             Err(s) => return Err(s),
         };
-        self.candles = vec_to_candles(self.raw_data.as_deref().unwrap(), self.candle_length.into()).ok();
+        self.candles =
+            vec_to_candles(self.raw_data.as_deref().unwrap(), self.candle_length.into()).ok();
         Ok(())
     }
 

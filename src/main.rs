@@ -1,6 +1,6 @@
 use fourier_fit::background::Background;
 use fourier_fit::bode::BodeView;
-use fourier_fit::candles::{CandlePanelView, CandleLengths};
+use fourier_fit::candles::{CandleLengths, CandlePanelView};
 use fourier_fit::filters::cutoff_period_to_nyquist;
 use fourier_fit::*;
 use iced::border::Radius;
@@ -201,7 +201,11 @@ impl Gui {
                 )
                 .width(Length::Fill),
                 text("Candle Lengths:").width(Length::Shrink),
-                pick_list(candle_options, Some(self.app.candle_length), Message::CandleLengthsChanged)
+                pick_list(
+                    candle_options,
+                    Some(self.app.candle_length),
+                    Message::CandleLengthsChanged
+                )
             ]
             .spacing(12)
             .align_y(Alignment::Center),
@@ -295,7 +299,9 @@ impl Gui {
             candles: self.app.candles.as_deref(),
             cache: &self.candles_cache,
             title: "Candle View",
-        }).width(Length::Fill).height(Length::Fill);
+        })
+        .width(Length::Fill)
+        .height(Length::Fill);
 
         let content = row![
             column![controls, candle_panel].padding(16).spacing(16),

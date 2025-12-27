@@ -245,57 +245,63 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 vmax += pady;
 
                 let grid = Stroke {
-    width: 1.0,
-    style: iced::widget::canvas::Style::Solid(Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.10)),
-    ..Stroke::default()
-};
+                    width: 1.0,
+                    style: iced::widget::canvas::Style::Solid(Color::from_rgba8(
+                        0xFF, 0xFF, 0xFF, 0.10,
+                    )),
+                    ..Stroke::default()
+                };
 
-// Choose number of ticks like a chart
-let y_ticks = 9usize; // 7..11 feels good
-let tick_len = 6.0_f32;
+                // Choose number of ticks like a chart
+                let y_ticks = 9usize; // 7..11 feels good
+                let tick_len = 6.0_f32;
 
-for k in 0..y_ticks {
-    let t = k as f32 / (y_ticks - 1) as f32;  // 0..1 top->bottom
-    let yy = plot_t + t * plot_h;
+                for k in 0..y_ticks {
+                    let t = k as f32 / (y_ticks - 1) as f32; // 0..1 top->bottom
+                    let yy = plot_t + t * plot_h;
 
-    // Horizontal grid line across plot
-    frame.stroke(
-        &Path::line(Point::new(plot_l, yy), Point::new(plot_r, yy)),
-        grid,
-    );
+                    // Horizontal grid line across plot
+                    frame.stroke(
+                        &Path::line(Point::new(plot_l, yy), Point::new(plot_r, yy)),
+                        grid,
+                    );
 
-    // Convert back to value for label (top is vmax, bottom is vmin)
-    let val = vmax - (t as f64) * (vmax - vmin);
+                    // Convert back to value for label (top is vmax, bottom is vmin)
+                    let val = vmax - (t as f64) * (vmax - vmin);
 
-    // Small tick mark on the right edge
-    frame.stroke(
-        &Path::line(Point::new(plot_r, yy), Point::new(plot_r + tick_len, yy)),
-        Stroke {
-            width: 1.0,
-            style: iced::widget::canvas::Style::Solid(Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.35)),
-            ..Stroke::default()
-        },
-    );
+                    // Small tick mark on the right edge
+                    frame.stroke(
+                        &Path::line(Point::new(plot_r, yy), Point::new(plot_r + tick_len, yy)),
+                        Stroke {
+                            width: 1.0,
+                            style: iced::widget::canvas::Style::Solid(Color::from_rgba8(
+                                0xFF, 0xFF, 0xFF, 0.35,
+                            )),
+                            ..Stroke::default()
+                        },
+                    );
 
-    // Tick label (in the gutter)
-    frame.fill_text(Text {
-        content: format!("{:.2}", val),
-        position: Point::new(axis_x + tick_len + 2.0, yy - 7.0),
-        color: Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.65),
-        size: 11.0.into(),
-        ..Text::default()
-    });
-}
+                    // Tick label (in the gutter)
+                    frame.fill_text(Text {
+                        content: format!("{:.2}", val),
+                        position: Point::new(axis_x + tick_len + 2.0, yy - 7.0),
+                        color: Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.65),
+                        size: 11.0.into(),
+                        ..Text::default()
+                    });
+                }
 
-// Plot border
-frame.stroke(
-    &Path::rectangle(Point::new(plot_l, plot_t), Size::new(plot_w, plot_h)),
-    Stroke {
-        width: 1.0,
-        style: iced::widget::canvas::Style::Solid(Color::from_rgba8(0xFF, 0xFF, 0xFF, 0.18)),
-        ..Stroke::default()
-    },
-);
+                // Plot border
+                frame.stroke(
+                    &Path::rectangle(Point::new(plot_l, plot_t), Size::new(plot_w, plot_h)),
+                    Stroke {
+                        width: 1.0,
+                        style: iced::widget::canvas::Style::Solid(Color::from_rgba8(
+                            0xFF, 0xFF, 0xFF, 0.18,
+                        )),
+                        ..Stroke::default()
+                    },
+                );
 
                 // let map_x = |t: f64| -> f32 {
                 //     let u = ((t - tmin) / (tmax - tmin)) as f32;
@@ -312,158 +318,150 @@ frame.stroke(
                 let candle_w = (slot_w * 0.70).clamp(2.0, 40.0);
                 let gap = slot_w - candle_w;
 
-                let x_for = |i: f32| -> f32 {
-                    plot_l + (i as f32) * slot_w + gap * 0.5
-                };
+                let x_for = |i: f32| -> f32 { plot_l + (i as f32) * slot_w + gap * 0.5 };
 
-                let wick_x_for = |i: f32| -> f32 {
-                    x_for(i) + candle_w * 0.5
-                };
+                let wick_x_for = |i: f32| -> f32 { x_for(i) + candle_w * 0.5 };
 
                 for c in candles {
                     // Skip bad data early (VERY important for wgpu stability)
-    if !(c.open.is_finite()
-        && c.close.is_finite())
-    {
-        continue;
-    }
+                    if !(c.open.is_finite() && c.close.is_finite()) {
+                        continue;
+                    }
 
-    let x0 = x_for(c.t as f32);
-    let xc = wick_x_for(c.t as f32);
+                    let x0 = x_for(c.t as f32);
+                    let xc = wick_x_for(c.t as f32);
 
-    let y_open  = map_y(c.open);
-    let y_close = map_y(c.close);
-    let y_high  = map_y(c.high);
-    let y_low   = map_y(c.low);
+                    let y_open = map_y(c.open);
+                    let y_close = map_y(c.close);
+                    let y_high = map_y(c.high);
+                    let y_low = map_y(c.low);
 
-    if !(y_open.is_finite()
-        && y_close.is_finite()
-        && y_high.is_finite()
-        && y_low.is_finite())
-    {
-        continue;
-    }
+                    if !(y_open.is_finite()
+                        && y_close.is_finite()
+                        && y_high.is_finite()
+                        && y_low.is_finite())
+                    {
+                        continue;
+                    }
 
-    // Determine candle direction
-    let up = c.close >= c.open;
+                    // Determine candle direction
+                    let up = c.close >= c.open;
 
-    let color = if up {
-        Color::from_rgba8(0x2E, 0xE5, 0x9D, 0.90) // green
-    } else {
-        Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90) // red
-    };
+                    let color = if up {
+                        Color::from_rgba8(0x2E, 0xE5, 0x9D, 0.90) // green
+                    } else {
+                        Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90) // red
+                    };
 
-    // --------------------
-    // Wick
-    // --------------------
-    frame.stroke(
-        &Path::line(
-            Point::new(xc, y_high),
-            Point::new(xc, y_low),
-        ),
-        Stroke {
-            width: 1.0,
-            style: iced::widget::canvas::Style::Solid(color),
-            ..Stroke::default()
-        },
-    );
+                    // --------------------
+                    // Wick
+                    // --------------------
+                    frame.stroke(
+                        &Path::line(Point::new(xc, y_high), Point::new(xc, y_low)),
+                        Stroke {
+                            width: 1.0,
+                            style: iced::widget::canvas::Style::Solid(color),
+                            ..Stroke::default()
+                        },
+                    );
 
-    // --------------------
-    // Body
-    // --------------------
-    let y_top = y_open.min(y_close);
-    let y_bot = y_open.max(y_close);
-    let body_h = (y_bot - y_top).max(1.0);
+                    // --------------------
+                    // Body
+                    // --------------------
+                    let y_top = y_open.min(y_close);
+                    let y_bot = y_open.max(y_close);
+                    let body_h = (y_bot - y_top).max(1.0);
 
-    let body = Path::rectangle(
-        Point::new(x0, y_top),
-        Size::new(candle_w, body_h),
-    );
+                    let body = Path::rectangle(Point::new(x0, y_top), Size::new(candle_w, body_h));
 
-    frame.fill(
-        &body,
-        Fill {
-            style: iced::widget::canvas::Style::Solid(color),
-            ..Fill::default()
-        },
-    );
+                    frame.fill(
+                        &body,
+                        Fill {
+                            style: iced::widget::canvas::Style::Solid(color),
+                            ..Fill::default()
+                        },
+                    );
 
-    // Optional outline (nice on dark backgrounds)
-    frame.stroke(
-        &body,
-        Stroke {
-            width: 1.0,
-            style: iced::widget::canvas::Style::Solid(Color { a: 0.95, ..color }),
-            ..Stroke::default()
-        },
-    );
+                    // Optional outline (nice on dark backgrounds)
+                    frame.stroke(
+                        &body,
+                        Stroke {
+                            width: 1.0,
+                            style: iced::widget::canvas::Style::Solid(Color { a: 0.95, ..color }),
+                            ..Stroke::default()
+                        },
+                    );
                 }
                 // ------------------------------------
-// Last-close dashed reference line
-// ------------------------------------
-if let Some(last) = candles.iter().rev().find(|c| c.close.is_finite() && c.open.is_finite()) {
-    let y_last = map_y(last.close);
+                // Last-close dashed reference line
+                // ------------------------------------
+                if let Some(last) = candles
+                    .iter()
+                    .rev()
+                    .find(|c| c.close.is_finite() && c.open.is_finite())
+                {
+                    let y_last = map_y(last.close);
 
-    if y_last.is_finite() {
-        let color = if last.close >= last.open {
-            Color::from_rgba8(0x2E, 0xE5, 0x9D, 0.90)
-        } else {
-            Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90)
-        };
+                    if y_last.is_finite() {
+                        let color = if last.close >= last.open {
+                            Color::from_rgba8(0x2E, 0xE5, 0x9D, 0.90)
+                        } else {
+                            Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90)
+                        };
 
-        // dashed line across plot (stops at plot_r)
-        frame.stroke(
-            &Path::line(Point::new(plot_l, y_last), Point::new(plot_r, y_last)),
-            Stroke {
-                width: 1.0,
-                style: iced::widget::canvas::Style::Solid(color),
-                line_dash: iced::widget::canvas::LineDash {
-                    segments: &[2.0, 4.0],
-                    offset: 0,
-                },
-                ..Stroke::default()
-            },
-        );
+                        // dashed line across plot (stops at plot_r)
+                        frame.stroke(
+                            &Path::line(Point::new(plot_l, y_last), Point::new(plot_r, y_last)),
+                            Stroke {
+                                width: 1.0,
+                                style: iced::widget::canvas::Style::Solid(color),
+                                line_dash: iced::widget::canvas::LineDash {
+                                    segments: &[2.0, 4.0],
+                                    offset: 0,
+                                },
+                                ..Stroke::default()
+                            },
+                        );
 
-        // label "pill" in the gutter; clamp y so it stays visible
-        let label = format!("{:.2}", last.close);
-        let font_px = 11.0_f32;
+                        // label "pill" in the gutter; clamp y so it stays visible
+                        let label = format!("{:.2}", last.close);
+                        let font_px = 11.0_f32;
 
-        // crude text metrics (since iced 0.14 canvas renderer doesn't expose measure)
-        let approx_w = (label.chars().count() as f32) * font_px * 0.62;
-        let pad_x = 6.0_f32;
-        let pad_y = 3.0_f32;
-        let pill_w = approx_w + 2.0 * pad_x;
-        let pill_h = font_px + 2.0 * pad_y;
+                        // crude text metrics (since iced 0.14 canvas renderer doesn't expose measure)
+                        let approx_w = (label.chars().count() as f32) * font_px * 0.62;
+                        let pad_x = 6.0_f32;
+                        let pad_y = 3.0_f32;
+                        let pill_w = approx_w + 2.0 * pad_x;
+                        let pill_h = font_px + 2.0 * pad_y;
 
-        let mut pill_y = y_last - pill_h * 0.5;
-        pill_y = pill_y.clamp(plot_t, plot_b - pill_h);
+                        let mut pill_y = y_last - pill_h * 0.5;
+                        pill_y = pill_y.clamp(plot_t, plot_b - pill_h);
 
-        let pill_x = (plot_r + 8.0).min(inner_r - pill_w - 2.0);
+                        let pill_x = (plot_r + 8.0).min(inner_r - pill_w - 2.0);
 
-        // background
-        frame.fill(
-            &Path::rounded_rectangle(
-                Point::new(pill_x, pill_y),
-                Size::new(pill_w, pill_h),
-                iced::border::Radius::from(6.0),
-            ),
-            Fill {
-                style: iced::widget::canvas::Style::Solid(color),
-                ..Fill::default()
-            },
-        );
+                        // background
+                        frame.fill(
+                            &Path::rounded_rectangle(
+                                Point::new(pill_x, pill_y),
+                                Size::new(pill_w, pill_h),
+                                iced::border::Radius::from(6.0),
+                            ),
+                            Fill {
+                                style: iced::widget::canvas::Style::Solid(color),
+                                ..Fill::default()
+                            },
+                        );
 
-        // text
-        frame.fill_text(Text {
-            content: label,
-            position: Point::new(pill_x + pad_x, pill_y + pad_y - 1.0),
-            color: Color::from_rgba8(0x00, 0x00, 0x00, 0.92),
-            size: font_px.into(),
-            ..Text::default()
-        });
-    }
-}
+                        // text
+                        frame.fill_text(Text {
+                            content: label,
+                            position: Point::new(pill_x + pad_x, pill_y + pad_y - 1.0),
+                            color: Color::from_rgba8(0x00, 0x00, 0x00, 0.92),
+                            size: font_px.into(),
+                            ..Text::default()
+                        });
+                    }
+                }
             });
 
         vec![geom]
@@ -501,7 +499,6 @@ pub enum CandleLengths {
 }
 
 impl From<CandleLengths> for usize {
-
     fn from(value: CandleLengths) -> Self {
         match value {
             CandleLengths::Weekly => 7,
