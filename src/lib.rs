@@ -24,8 +24,8 @@ pub struct App {
     pub zeros: Option<Vec<Complex<f64>>>,
     pub bode_plot: Option<(Vec<f64>, Vec<f64>)>,
     pub data_spectrum: Option<Vec<f64>>,
-    pub candles: Option<Vec<views::candles::Candle>>,
-    pub candle_length: views::candles::CandleLengths,
+    pub candles: Option<Vec<structures::candle::Candle>>,
+    pub candle_length: structures::candle::CandleLengths,
 }
 
 impl App {
@@ -43,7 +43,7 @@ impl App {
             bode_plot: None,
             data_spectrum: None,
             candles: None,
-            candle_length: views::candles::CandleLengths::Weekly,
+            candle_length: structures::candle::CandleLengths::Weekly,
         }
     }
 
@@ -80,7 +80,7 @@ impl App {
             Err(s) => return Err(s),
         };
         self.candles =
-            views::candles::vec_to_candles(self.raw_data.as_deref().unwrap(), self.candle_length.into()).ok();
+            structures::candle::vec_to_candles(self.raw_data.as_deref().unwrap(), self.candle_length.into()).ok();
         Ok(())
     }
 
@@ -124,7 +124,7 @@ impl App {
 
     pub fn generate_bode(&mut self) -> Result<(), String> {
         if let Some(data) = &self.filtered_data {
-            self.bode_plot = Some(views::bode::bode_mag_logspace(&data.b, &data.a, 1., 100));
+            self.bode_plot = Some(math::bode_mag_logspace(&data.b, &data.a, 1., 100));
             return Ok(());
         }
         Err(String::from("Filtering not complete"))
@@ -141,7 +141,7 @@ pub enum Message {
     LoadDemo,
     Calculate,
     ClearOutput,
-    CandleLengthsChanged(views::candles::CandleLengths),
+    CandleLengthsChanged(structures::candle::CandleLengths),
 }
 
 pub fn fmt_tick(v: f64) -> String {

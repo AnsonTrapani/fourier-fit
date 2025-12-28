@@ -181,9 +181,9 @@ impl Gui {
             structures::filters::FilterType::CHEBYSHEV2,
         ];
         let candle_options = [
-            views::candles::CandleLengths::Weekly,
-            views::candles::CandleLengths::Monthly,
-            views::candles::CandleLengths::Yearly,
+            structures::candle::CandleLengths::Weekly,
+            structures::candle::CandleLengths::Monthly,
+            structures::candle::CandleLengths::Yearly,
         ];
 
         let controls = column![
