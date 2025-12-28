@@ -6,6 +6,10 @@ use sci_rs::signal::filter::{
     sosfiltfilt_dyn,
 };
 use scirs2::signal::filter;
+use scirs2::fft::rfft;
+use num_complex::Complex;
+use ndarray::Array2;
+use ndarray_linalg::EigVals;
 
 pub const NYQUIST_PERIOD: f64 = 2.;
 
@@ -164,4 +168,75 @@ fn normalize_lowpass_dc(b: &mut [f64], a: &[f64]) {
     for bi in b.iter_mut() {
         *bi /= g; // make H(0) = 1
     }
+}
+
+pub fn rfft_mag(data: &[f64]) -> Result<Vec<f64>, String> {
+    let output = match rfft(data, None) {
+        Ok(r) => r,
+        Err(_) => return Err(String::from("Could not take fft of data")),
+    };
+    Ok(output.into_iter().map(|x| x.norm()).collect())
+}
+
+/// c in ascending order: c[0] + c[1] w + ... + c[n] w^n
+pub fn poly_roots_ascending_real(c_in: &[f64]) -> Result<Vec<Complex<f64>>, String> {
+    if c_in.is_empty() {
+        return Err("Empty polynomial".into());
+    }
+
+    // trim trailing zeros (highest degree)
+    let deg = match c_in.iter().rposition(|&x| x != 0.0) {
+        Some(d) => d,
+        None => return Err("Zero polynomial".into()),
+    };
+    if deg == 0 {
+        return Ok(vec![]); // constant => no roots
+    }
+
+    let lead = c_in[deg];
+    let mut c = c_in[..=deg].to_vec();
+    for x in &mut c {
+        *x /= lead; // monic
+    }
+
+    // Companion for w^deg + a_{deg-1} w^{deg-1} + ... + a0
+    let mut m = Array2::<Complex<f64>>::zeros((deg, deg));
+
+    // first row = [-a_{deg-1}, ..., -a0]
+    for j in 0..deg {
+        let a = c[deg - 1 - j];
+        m[(0, j)] = Complex::new(-a, 0.0);
+    }
+    // subdiagonal ones
+    for i in 1..deg {
+        m[(i, i - 1)] = Complex::new(1.0, 0.0);
+    }
+
+    let eig = m.eigvals().map_err(|e| format!("eigvals failed: {e}"))?;
+    Ok(eig.to_vec())
+}
+
+/// Given filter coeffs in z^-1 form (b0..bN, a0..aM),
+/// return (zeros_z, poles_z) in the z-plane.
+pub fn iir_zeros_poles_z(
+    b: &[f64],
+    a: &[f64],
+) -> Result<(Vec<Complex<f64>>, Vec<Complex<f64>>), String> {
+    // Roots in w = z^-1:
+    let zeros_w = poly_roots_ascending_real(b)?;
+    let poles_w = poly_roots_ascending_real(a)?;
+
+    // Convert to z = 1/w (handle w ~ 0 => z at infinity)
+    let inv = |w: Complex<f64>| {
+        if w.norm() == 0.0 {
+            // root at w=0 => z = infinity; represent however you want
+            Complex::new(f64::INFINITY, f64::INFINITY)
+        } else {
+            Complex::new(1.0, 0.0) / w
+        }
+    };
+
+    let zeros_z: Vec<_> = zeros_w.into_iter().map(inv).collect();
+    let poles_z: Vec<_> = poles_w.into_iter().map(inv).collect();
+    Ok((zeros_z, poles_z))
 }
