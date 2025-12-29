@@ -1,0 +1,26 @@
+use chrono::TimeZone;
+use iced_aw::core::date::Date;
+
+pub fn iced_date_to_local_datetime(date: Date) -> Result<chrono::DateTime<chrono::Local>, String> {
+    let naive_date = match chrono::NaiveDate::from_ymd_opt(
+        date.year,
+        date.month,
+        date.day,
+    ) {
+        Some(n) => n,
+        None => return Err(String::from("Invalid date"))
+    };
+
+    let naive_dt: chrono::NaiveDateTime = match naive_date
+        .and_hms_opt(0, 0, 0) {
+            Some(t) => t,
+            None => return Err(String::from("Invalid time"))
+        };
+
+    match chrono::Local
+        .from_local_datetime(&naive_dt)
+        .single() {
+            Some(l) => Ok(l),
+            None => Err(String::from("ambiguous or invalid local datetime"))
+        }
+}
