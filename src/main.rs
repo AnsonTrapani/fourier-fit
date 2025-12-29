@@ -1,10 +1,11 @@
 use fourier_fit::views;
 use fourier_fit::*;
+use fourier_fit::structures::data_modal;
 use iced::widget::Canvas;
 use iced::widget::canvas::Cache;
 use iced::{
     Alignment, Element, Length, Theme,
-    widget::{button, column, pick_list, row, stack, text, text_input},
+    widget::{button, column, pick_list, row, stack, text, text_input, container},
 };
 
 const BOLD: iced::Font = iced::Font::with_name("Inter ExtraBold");
@@ -18,7 +19,11 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Gui {
+    // Mathematics state
     app: App,
+
+    // Data modal state
+    modal_state: data_modal::DataModalState,
 
     // Store inputs as Strings (best practice for text_input)
     cutoff_s: String,
@@ -45,6 +50,7 @@ impl Gui {
 
         Self {
             app,
+            modal_state: data_modal::DataModalState::new(),
             cutoff_s: "".into(),
             order_s: "".into(),
             ripple_s: "".into(),
@@ -170,7 +176,10 @@ impl Gui {
                 self.fft_cache.clear();
                 self.bode_cache.clear();
                 self.candles_cache.clear();
-            }
+            },
+            Message::WeightSelectionChanged(s) => self.modal_state.weight_entry = s,
+            Message::OpenDataModal => self.modal_state.show_modal = true,
+            Message::CloseDataModal => self.modal_state.show_modal = false,
         }
     }
 
@@ -229,7 +238,7 @@ impl Gui {
             .spacing(12)
             .align_y(Alignment::Center),
             row![
-                button("Generate demo data").on_press(Message::LoadDemo),
+                button("Edit/Load Data").on_press(Message::OpenDataModal),
                 button("Calculate").on_press(Message::Calculate),
                 button("Clear").on_press(Message::ClearOutput),
             ]
@@ -305,12 +314,59 @@ impl Gui {
                 .spacing(5),
         ];
 
-        stack![
+        let main_stack = stack![
             Canvas::new(views::background::Background)
                 .width(Length::Fill)
                 .height(Length::Fill),
             content,
-        ]
-        .into()
+        ];
+        if !self.modal_state.show_modal {
+            return main_stack.into();
+        }
+        // --- Modal content (the “card”) ---
+        let modal_card = container(
+            column![
+                text("Edit details").size(22),
+                text_input("", &self.modal_state.weight_entry)
+                    .on_input(Message::WeightSelectionChanged),
+                row![
+                    button("Close").on_press(Message::CloseDataModal),
+                ]
+                .spacing(12),
+            ]
+            .spacing(12)
+            .padding(16),
+        )
+        .width(Length::Fixed(420.0))
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(iced::Color::from_rgb8(0x1f, 0x1f, 0x1f))),
+            text_color: Some(iced::Color::WHITE),
+            border: iced::Border {
+                radius: 12.0.into(),
+                width: 1.0,
+                color: iced::Color::from_rgb8(0x44, 0x44, 0x44),
+            },
+            ..Default::default()
+        });
+
+        // --- Scrim + centered card ---
+        let overlay = container(
+            container(modal_card)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(iced::Color {
+                r: 0.0, g: 0.0, b: 0.0, a: 0.55, // translucent scrim
+            })),
+            ..Default::default()
+        });
+
+        // Stack base + overlay (overlay on top)
+        stack![main_stack, overlay].into()
     }
 }

@@ -1343,6 +1343,7 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 name = "fourier-fit"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "iced",
  "ndarray 0.17.1",
  "ndarray-linalg 0.18.0",

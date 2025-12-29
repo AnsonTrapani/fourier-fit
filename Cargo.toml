@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono = "0.4.42"
 iced = { version = "0.14.0", default-features = true, features = ["canvas"] }
 ndarray = "0.17.1"
 ndarray-linalg = "0.18.0"

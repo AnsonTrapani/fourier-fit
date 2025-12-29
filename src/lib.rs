@@ -142,6 +142,9 @@ pub enum Message {
     Calculate,
     ClearOutput,
     CandleLengthsChanged(structures::candle::CandleLengths),
+    OpenDataModal,
+    CloseDataModal,
+    WeightSelectionChanged(String),
 }
 
 pub fn fmt_tick(v: f64) -> String {
