@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 chrono = "0.4.42"
 iced = { version = "0.14.0", default-features = true, features = ["canvas"] }
+iced_aw = "0.13.0"
 ndarray = "0.17.1"
 ndarray-linalg = "0.18.0"
 num-complex = "0.4.6"

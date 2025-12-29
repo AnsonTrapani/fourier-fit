@@ -1,6 +1,7 @@
 pub mod math;
 pub mod views;
 pub mod structures;
+pub mod logic;
 use math::{
     FilterData, NYQUIST_PERIOD, butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
 };
@@ -145,6 +146,8 @@ pub enum Message {
     OpenDataModal,
     CloseDataModal,
     WeightSelectionChanged(String),
+    NoOp,
+    UpdateDate(iced_aw::date_picker::Date)
 }
 
 pub fn fmt_tick(v: f64) -> String {

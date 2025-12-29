@@ -1,3 +1,4 @@
+use fourier_fit::logic;
 use fourier_fit::views;
 use fourier_fit::*;
 use fourier_fit::structures::data_modal;
@@ -180,6 +181,13 @@ impl Gui {
             Message::WeightSelectionChanged(s) => self.modal_state.weight_entry = s,
             Message::OpenDataModal => self.modal_state.show_modal = true,
             Message::CloseDataModal => self.modal_state.show_modal = false,
+            Message::UpdateDate(d) => {
+                match logic::iced_date_to_local_datetime(d) {
+                    Ok(date) => self.modal_state.selected_datetime = date,
+                    Err(e) => self.error = Some(e),
+                }
+            }
+            Message::NoOp => {},
         }
     }
 
@@ -216,7 +224,7 @@ impl Gui {
             row![
                 text("Cutoff period (days):").width(Length::Shrink),
                 text_input("e.g. 4.2", &self.cutoff_s)
-                    .on_input(Message::CutoffChanged)
+                    .on_input_maybe(if !self.modal_state.show_modal {Some(Message::CutoffChanged)} else {None})
                     .width(Length::FillPortion(1)),
             ]
             .spacing(12)
@@ -224,23 +232,23 @@ impl Gui {
             row![
                 text("Order:").width(Length::Shrink),
                 text_input("e.g. 4", &self.order_s)
-                    .on_input(Message::OrderChanged)
+                    .on_input_maybe(if !self.modal_state.show_modal {Some(Message::OrderChanged)} else {None})
                     .width(Length::FillPortion(1)),
                 text("Ripple (dB):").width(Length::Shrink),
                 text_input("e.g. 5", &self.ripple_s)
-                    .on_input(Message::RippleChanged)
+                    .on_input_maybe(if !self.modal_state.show_modal {Some(Message::RippleChanged)} else {None})
                     .width(Length::FillPortion(1)),
                 text("Attenuation (dB):").width(Length::Shrink),
                 text_input("e.g. 40", &self.attenuation_s)
-                    .on_input(Message::AttenuationChanged)
+                    .on_input_maybe(if !self.modal_state.show_modal {Some(Message::AttenuationChanged)} else {None})
                     .width(Length::FillPortion(1)),
             ]
             .spacing(12)
             .align_y(Alignment::Center),
             row![
-                button("Edit/Load Data").on_press(Message::OpenDataModal),
-                button("Calculate").on_press(Message::Calculate),
-                button("Clear").on_press(Message::ClearOutput),
+                button("Edit/Load Data").on_press_maybe(if !self.modal_state.show_modal {Some(Message::OpenDataModal)} else {None}),
+                button("Calculate").on_press_maybe(if !self.modal_state.show_modal {Some(Message::Calculate)} else {None}),
+                button("Clear").on_press_maybe(if !self.modal_state.show_modal {Some(Message::ClearOutput)} else {None}),
             ]
             .spacing(12),
             if let Some(err) = &self.error {
@@ -324,8 +332,11 @@ impl Gui {
             return main_stack.into();
         }
         // --- Modal content (the “card”) ---
+        let with_date = iced_aw::DatePicker::new(true, self.modal_state.selected_datetime.date_naive(),
+    column![text("Date selection:").width(Length::Shrink)].align_x(iced::Alignment::Center).width(Length::Fill).height(Length::FillPortion(1)),
+    Message::NoOp, Message::UpdateDate);
         let modal_card = container(
-            column![
+            column![with_date,
                 text("Edit details").size(22),
                 text_input("", &self.modal_state.weight_entry)
                     .on_input(Message::WeightSelectionChanged),
