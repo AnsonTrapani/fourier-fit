@@ -24,25 +24,23 @@ impl DataModalState {
                 dt_str = format!("{file_str} does not exist");
             } else if exists_res.is_err() {
                 dt_str = format!("Unable to verify the existence of {file_str}");
-            } else {
-                if let Ok(ifile) = std::fs::File::open(&file) {
-                    if is_file_empty(&file) {
-                        map = Some(std::collections::HashMap::new());
-                        ret_f = Some(file);
-                    } else {
-                        match serde_json::from_reader(&ifile) {
-                            Ok(m) => {
-                                map = Some(m);
-                                ret_f = Some(file);
-                            }
-                            Err(_) => {
-                                dt_str = format!("Could not convert {file_str} into HashMap");
-                            }
+            } else if let Ok(ifile) = std::fs::File::open(&file) {
+                if is_file_empty(&file) {
+                    map = Some(std::collections::HashMap::new());
+                    ret_f = Some(file);
+                } else {
+                    match serde_json::from_reader(&ifile) {
+                        Ok(m) => {
+                            map = Some(m);
+                            ret_f = Some(file);
+                        }
+                        Err(_) => {
+                            dt_str = format!("Could not convert {file_str} into HashMap");
                         }
                     }
-                } else {
-                    dt_str = format!("Unable to open file {file_str}");
                 }
+            } else {
+                dt_str = format!("Unable to open file {file_str}");
             }
         }
         Self {

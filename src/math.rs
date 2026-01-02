@@ -11,6 +11,8 @@ use sci_rs::signal::filter::{
 use scirs2::fft::rfft;
 use scirs2::signal::filter;
 
+type PzTuple = (Vec<Complex<f64>>, Vec<Complex<f64>>);
+
 pub const NYQUIST_PERIOD: f64 = 2.;
 
 pub struct FilterData {
@@ -218,10 +220,7 @@ pub fn poly_roots_ascending_real(c_in: &[f64]) -> Result<Vec<Complex<f64>>, Stri
 
 /// Given filter coeffs in z^-1 form (b0..bN, a0..aM),
 /// return (zeros_z, poles_z) in the z-plane.
-pub fn iir_zeros_poles_z(
-    b: &[f64],
-    a: &[f64],
-) -> Result<(Vec<Complex<f64>>, Vec<Complex<f64>>), String> {
+pub fn iir_zeros_poles_z(b: &[f64], a: &[f64]) -> Result<PzTuple, String> {
     // Roots in w = z^-1:
     let zeros_w = poly_roots_ascending_real(b)?;
     let poles_w = poly_roots_ascending_real(a)?;

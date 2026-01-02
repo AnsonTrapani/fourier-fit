@@ -1,6 +1,6 @@
 #[derive(Clone, Copy, Debug)]
 pub struct Candle {
-    pub t: f64, // time index (seconds, days, sample index... anything monotonic)
+    pub t: f64, // time index
     pub open: f64,
     pub high: f64,
     pub low: f64,
