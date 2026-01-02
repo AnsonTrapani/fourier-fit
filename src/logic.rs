@@ -6,6 +6,7 @@ pub fn iced_date_to_local_datetime(date: Date) -> Result<chrono::NaiveDate, Stri
         None => Err(String::from("Invalid date")),
     }
 
+    // Switched this one to naive so no need for timezone accounting
     // let naive_dt: chrono::NaiveDateTime = match naive_date
     //     .and_hms_opt(0, 0, 0) {
     //         Some(t) => t,

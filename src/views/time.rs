@@ -47,7 +47,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
                 },
             );
 
-            // Border (optional but nice)
+            // Border
             frame.stroke(
                 &panel,
                 Stroke {
@@ -96,27 +96,12 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
                 }
             };
 
-            // Decide how many points we can draw
             let n_raw = raw.len();
-            // if n_raw < 2 {
-            //     // nothing meaningful to draw
-            //     frame.fill_text(Text {
-            //         content: "No raw data".into(),
-            //         position: Point::new((left + right) / 2., (top + bottom) / 2.),
-            //         color: label_color(),
-            //         size: 14.0.into(),
-            //         ..Text::default()
-            //     });
-            //     return;
-            // }
 
             let n = match self.filtered {
                 Some(f) => n_raw.min(f.len()),
                 None => n_raw,
             };
-            // if n < 2 {
-            //     return;
-            // }
 
             // Y range from both series (raw + filtered if present)
             let mut ymin = f64::INFINITY;
@@ -187,7 +172,7 @@ impl<'a> canvas::Program<Message> for TimeSeriesPlotView<'a> {
                 },
             );
 
-            // y ticks (min / mid / max)
+            // y ticks
             let label_color = label_color();
             let size = 12.0;
 

@@ -99,15 +99,13 @@ fn butterworth_sos(
     order: usize,
     wn: Vec<f64>,
     band: FilterBandType,
-    // fs: f64,
 ) -> Result<Vec<Sos<f64>>, String> {
     let df = butter_dyn(
         order,
         wn,
         Some(band),
-        Some(false),                 // digital filter
-        Some(FilterOutputType::Sos), // force SOS output
-        // Some(fs),                       // wn interpreted in same units as fs
+        Some(false),
+        Some(FilterOutputType::Sos),
         None,
     );
 
@@ -168,7 +166,7 @@ fn normalize_lowpass_dc(b: &mut [f64], a: &[f64]) {
     let sum_a: f64 = a.iter().sum();
     let g = sum_b / sum_a; // H(0)
     for bi in b.iter_mut() {
-        *bi /= g; // make H(0) = 1
+        *bi /= g; // force H(0) = 1 (unity DC gain)
     }
 }
 
@@ -192,7 +190,7 @@ pub fn poly_roots_ascending_real(c_in: &[f64]) -> Result<Vec<Complex<f64>>, Stri
         None => return Err("Zero polynomial".into()),
     };
     if deg == 0 {
-        return Ok(vec![]); // constant => no roots
+        return Ok(vec![]); // constant so no roots
     }
 
     let lead = c_in[deg];

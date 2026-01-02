@@ -4,12 +4,10 @@ use iced::widget::canvas::{Cache, Fill, Frame, Geometry, Path, Stroke, Text};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
 
 pub struct BodeView<'a> {
-    /// Frequencies in Hz (or cycles/day, etc.) — must be strictly > 0 for log-x.
     pub freqs: Option<&'a [f64]>,
     /// Magnitude in dB for each frequency.
     pub mag_db: Option<&'a [f64]>,
     pub cache: &'a Cache,
-    /// X-axis label (e.g. "Frequency (cycles/day)" or "Frequency (Hz)")
     pub x_label: &'a str,
 }
 
@@ -103,7 +101,7 @@ impl<'a> canvas::Program<Message> for BodeView<'a> {
                     }
                 };
 
-                // Find finite ranges; for log-x we need strictly positive frequencies
+                // Find finite ranges; for log-x strictly positive frequencies
                 let mut f_min = f64::INFINITY;
                 let mut f_max = f64::NEG_INFINITY;
                 let mut y_min = f64::INFINITY;
@@ -159,14 +157,14 @@ impl<'a> canvas::Program<Message> for BodeView<'a> {
                     bottom - t * plot_h
                 };
 
-                // Grid + box
+                // Grid and box
                 let grid = Stroke {
                     width: 1.0,
                     style: iced::widget::canvas::Style::Solid(grid_color()),
                     ..Stroke::default()
                 };
 
-                // Horizontal grid lines (5)
+                // Horizontal grid lines (5 total)
                 for k in 0..=4 {
                     let t = k as f32 / 4.0;
                     let yy = top + t * plot_h;
@@ -176,7 +174,7 @@ impl<'a> canvas::Program<Message> for BodeView<'a> {
                     );
                 }
 
-                // Vertical grid lines: decades between f_min..f_max (plus minor 2..9 if you want)
+                // Vertical grid lines
                 let decade_start = log_f_min.floor() as i32;
                 let decade_end = log_f_max.ceil() as i32;
                 for d in decade_start..=decade_end {
@@ -199,7 +197,7 @@ impl<'a> canvas::Program<Message> for BodeView<'a> {
                     },
                 );
 
-                // Y tick labels (dB): min / mid / max
+                // Y tick labels (dB)
                 let lbl = label_color();
                 let y_mid = 0.5 * (y_min + y_max);
                 for (val, yy) in [(y_max, top), (y_mid, (top + bottom) * 0.5), (y_min, bottom)] {
@@ -232,7 +230,7 @@ impl<'a> canvas::Program<Message> for BodeView<'a> {
                         tick_stroke,
                     );
 
-                    // Label like 1e-2, 1e-1, 1e0, 1e1...
+                    // Value labels
                     frame.fill_text(Text {
                         content: format!("1e{}", d),
                         position: Point::new(xx - 14.0, x_label_y - 10.0),
@@ -250,7 +248,7 @@ impl<'a> canvas::Program<Message> for BodeView<'a> {
                     ..Text::default()
                 });
 
-                // Bode magnitude line (no Path::builder; use Path::new)
+                // Bode magnitude line
                 let line_color = Color::from_rgb8(0x00, 0xB3, 0xFF);
 
                 let mut started = false;

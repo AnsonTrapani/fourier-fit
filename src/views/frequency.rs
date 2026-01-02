@@ -46,7 +46,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 },
             );
 
-            // Border (optional but nice)
+            // Border
             frame.stroke(
                 &panel,
                 Stroke {
@@ -77,7 +77,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             let plot_w = (right - left).max(1.0);
             let plot_h = (bottom - top).max(1.0);
 
-            // Decide how many points we can draw
+            // Decide how many points to draw
             if self.fft_out.is_none() {
                 let size = 14.0;
                 let x_bias = 0.9 * size;
@@ -126,11 +126,9 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 ymax = mid + 1.0;
             }
 
-            // add padding
             let pad_y = 0.08 * (ymax - ymin);
             ymax += pad_y;
 
-            // let map_x = |i: usize| -> f32 { left + (i as f32) * (plot_w / ((n - 1) as f32)) };
             let map_y = |y: f64| -> f32 {
                 let t = ((y - ymin) / (ymax - ymin)) as f32;
                 bottom - t * plot_h
@@ -164,7 +162,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                 },
             );
 
-            // y ticks (min / mid / max)
+            // y ticks
             let label_color = label_color();
             let size = 12.0;
 
@@ -180,7 +178,6 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             }
 
             // --- bars ---
-            // Choose a baseline: 0 if it's within range, else ymin
             let baseline_val = if ymin <= 0.0 && 0.0 <= ymax {
                 0.0
             } else {
@@ -190,7 +187,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
 
             // Bar sizing
             let dx = plot_w / (n as f32);
-            let gap = (dx * 0.15).min(3.0); // small spacing between bars
+            let gap = (dx * 0.15).min(3.0); // spacing between bars
             let bar_w = (dx - gap).max(1.0);
 
             let bar_color = Color::from_rgb8(0x00, 0x66, 0xCC);
@@ -217,7 +214,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
                     (baseline_y, y_px - baseline_y) // negative relative to baseline
                 };
 
-                // Skip ultra-tiny bars if you want:
+                // Skip ultra-tiny bars
                 if height <= max_bar_height as f32 * 0.01f32 {
                     continue;
                 }
@@ -241,7 +238,7 @@ impl<'a> canvas::Program<Message> for SpectralView<'a> {
             let x_label_y = bottom + 16.0;
             let tick_len = 6.0_f32;
 
-            // label 0 .. Nyquist (fs/2) in cycles/day
+            // label 0 .. Nyquist (fs/2) in units cycles/day
             let nyq = 1. / 2.0;
             for k in 0..=4 {
                 let t = k as f32 / 4.0;

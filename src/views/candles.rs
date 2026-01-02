@@ -10,7 +10,7 @@ pub struct CandlePanelView<'a> {
     pub poles: Option<&'a [num_complex::Complex64]>,
     pub candles: Option<&'a [Candle]>,
     pub cache: &'a Cache,
-    pub title: &'a str, // e.g. "Poles/Zeros + Time"
+    pub title: &'a str,
 }
 
 impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
@@ -47,7 +47,6 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 frame.fill(
                     &panel,
                     Fill {
-                        // use your helpers if you have them
                         style: iced::widget::canvas::Style::Solid(Color::from_rgb8(
                             0x0B, 0x0B, 0x0E,
                         )),
@@ -86,7 +85,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                     ..Text::default()
                 });
 
-                // Poles/Zeros text (2 columns)
+                // Poles/Zeros text
                 let text_y0 = inner_t + 18.0;
                 let col_gap = 18.0;
                 let col_w = ((inner_r - inner_l) - col_gap).max(1.0) * 0.5;
@@ -122,7 +121,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
 
                 let zeros = self.zeros.unwrap_or(&[]);
                 let poles = self.poles.unwrap_or(&[]);
-                let rows = zeros.len().max(poles.len()).min(4); // show first 4; tweak as you like
+                let rows = zeros.len().max(poles.len()).min(4); // show first 4
 
                 for i in 0..rows {
                     if let Some(z) = zeros.get(i) {
@@ -149,8 +148,8 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 // Candle plot region
                 let plot_l = inner_l;
 
-                // Reserve space INSIDE the panel for right-side axis labels
-                let y_axis_gutter = 64.0_f32; // tweak (56..80)
+                // Reserve space inside the panel for right-side axis labels
+                let y_axis_gutter = 64.0_f32; // should be in (56..80)
                 let plot_r = inner_r - y_axis_gutter;
 
                 let plot_t = header_b + 10.0;
@@ -159,7 +158,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 let plot_w = (plot_r - plot_l).max(1.0);
                 let plot_h = (plot_b - plot_t).max(1.0);
 
-                // Axis label anchor (still inside the panel)
+                // Axis label anchor inside panel
                 let axis_x = plot_r + 8.0; // where tick labels start
 
                 frame.stroke(
@@ -213,7 +212,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                     vmax = vmin + 1.0;
                 }
 
-                // Pad y a bit
+                // Pad y
                 let pady = 0.06 * (vmax - vmin);
                 vmin -= pady;
                 vmax += pady;
@@ -227,11 +226,11 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 };
 
                 // Choose number of ticks like a chart
-                let y_ticks = 9usize; // 7..11 feels good
+                let y_ticks = 9usize; // should be in (7..11) to look nice
                 let tick_len = 6.0_f32;
 
                 for k in 0..y_ticks {
-                    let t = k as f32 / (y_ticks - 1) as f32; // 0..1 top->bottom
+                    let t = k as f32 / (y_ticks - 1) as f32;
                     let yy = plot_t + t * plot_h;
 
                     // Horizontal grid line across plot
@@ -240,7 +239,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                         grid,
                     );
 
-                    // Convert back to value for label (top is vmax, bottom is vmin)
+                    // Convert back to value for label
                     let val = vmax - (t as f64) * (vmax - vmin);
 
                     // Small tick mark on the right edge
@@ -255,7 +254,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                         },
                     );
 
-                    // Tick label (in the gutter)
+                    // Tick label (in plot gutter)
                     frame.fill_text(Text {
                         content: format!("{:.2}", val),
                         position: Point::new(axis_x + tick_len + 2.0, yy - 7.0),
@@ -293,7 +292,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                 let wick_x_for = |i: f32| -> f32 { x_for(i) + candle_w * 0.5 };
 
                 for (i, c) in candles.iter().enumerate() {
-                    // Skip bad data early (VERY important for wgpu stability)
+                    // Skip bad data
                     if !(c.open.is_finite() && c.close.is_finite()) {
                         continue;
                     }
@@ -324,9 +323,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                         Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90) // red
                     };
 
-                    // --------------------
                     // Wick
-                    // --------------------
                     frame.stroke(
                         &Path::line(Point::new(xc, y_high), Point::new(xc, y_low)),
                         Stroke {
@@ -336,9 +333,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                         },
                     );
 
-                    // --------------------
                     // Body
-                    // --------------------
                     let y_top = y_open.min(y_close);
                     let y_bot = y_open.max(y_close);
                     let body_h = (y_bot - y_top).max(1.0);
@@ -353,7 +348,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                         },
                     );
 
-                    // Optional outline (nice on dark backgrounds)
+                    // Outline
                     frame.stroke(
                         &body,
                         Stroke {
@@ -363,9 +358,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                         },
                     );
                 }
-                // ------------------------------------
                 // Last-close dashed reference line
-                // ------------------------------------
                 if let Some(last) = candles
                     .iter()
                     .rev()
@@ -380,7 +373,7 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                             Color::from_rgba8(0xFF, 0x4D, 0x5A, 0.90)
                         };
 
-                        // dashed line across plot (stops at plot_r)
+                        // dashed line across plot
                         frame.stroke(
                             &Path::line(Point::new(plot_l, y_last), Point::new(plot_r, y_last)),
                             Stroke {
@@ -394,11 +387,11 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                             },
                         );
 
-                        // label "pill" in the gutter; clamp y so it stays visible
+                        // label in the gutter
+                        // clamp y so it stays visible
                         let label = format!("{:.2}", last.close);
                         let font_px = 11.0_f32;
 
-                        // crude text metrics (since iced 0.14 canvas renderer doesn't expose measure)
                         let approx_w = (label.chars().count() as f32) * font_px * 0.62;
                         let pad_x = 6.0_f32;
                         let pad_y = 3.0_f32;

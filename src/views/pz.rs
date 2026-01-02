@@ -27,7 +27,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
             let w = bounds.width;
             let h = bounds.height;
 
-            // Panel inset (so we don't draw into the dark background region)
+            // Panel inset
             let pad = 12.0_f32;
 
             let panel_x = pad;
@@ -35,7 +35,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
             let panel_w = (w - 2.0 * pad).max(1.0);
             let panel_h = (h - 2.0 * pad).max(1.0);
 
-            // "Squircle-ish" radius: big rounded corners
+            // "Squircle-ish" radius
             let r = 22.0_f32;
 
             let panel = Path::rounded_rectangle(
@@ -44,7 +44,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                 Radius::from(r),
             );
 
-            // White background panel
+            // background panel
             frame.fill(
                 &panel,
                 Fill {
@@ -53,7 +53,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                 },
             );
 
-            // Border (optional but nice)
+            // Border
             frame.stroke(
                 &panel,
                 Stroke {
@@ -78,7 +78,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
             if self.zeros.is_none() && self.poles.is_none() {
                 let size = 14.0;
                 let x_bias = 1.3 * size;
-                let left = panel_x + 56.0; // extra space for dB labels
+                let left = panel_x + 56.0;
                 let right = panel_x + panel_w - 12.0;
                 let top = panel_y + 12.0;
                 let bottom = panel_y + panel_h - 30.0;
@@ -207,7 +207,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                 ..Text::default()
             });
 
-            // Zeros: small circles
+            // Zeros:
             if let Some(zs) = self.zeros {
                 for &z in zs {
                     if z.re.is_finite() && z.im.is_finite() {
@@ -224,7 +224,7 @@ impl<'a> canvas::Program<Message> for PzPlotView<'a> {
                 }
             }
 
-            // Poles: X
+            // Poles
             if let Some(ps) = self.poles {
                 for &p0 in ps {
                     if p0.re.is_finite() && p0.im.is_finite() {

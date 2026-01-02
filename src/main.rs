@@ -26,7 +26,7 @@ struct Gui {
     // Data modal state
     modal_state: data_modal::DataModalState,
 
-    // Store inputs as Strings (best practice for text_input)
+    // Store inputs
     cutoff_s: String,
     order_s: String,
     ripple_s: String,
@@ -46,9 +46,7 @@ struct Gui {
 impl Gui {
     fn default() -> Self {
         let app = App::new();
-        // Optional: populate demo data so Calculate works immediately
         let file = weight_file().unwrap_or(DEFAULT_FILENAME.into());
-        // println!("File: {}", file.to_string_lossy());
         let modal_state = data_modal::DataModalState::new(if create_file_perhaps(&file).is_ok() {
             Some(file)
         } else {
@@ -151,7 +149,7 @@ impl Gui {
                 self.app.set_ripple(ripple);
                 self.app.set_attenuation(attenuation);
 
-                // Run your computation
+                // Run computation
                 if let Err(e) = self.app.filter() {
                     self.error = Some(e);
                     return;
@@ -165,7 +163,7 @@ impl Gui {
                     return;
                 }
 
-                // Format output (poles/zeros are Option<Vec<Complex<f64>>> in your App)
+                // Format output
                 self.zeros_out = match &self.app.zeros {
                     Some(z) if !z.is_empty() => z
                         .iter()
@@ -385,7 +383,7 @@ impl Gui {
         if !self.modal_state.show_modal {
             return main_stack.into();
         }
-        // --- Modal content (the “card”) ---
+        // Modal content
         let with_date = iced_aw::DatePicker::new(
             true,
             self.modal_state.selected_datetime,
@@ -422,7 +420,7 @@ impl Gui {
             ..Default::default()
         });
 
-        // --- Scrim + centered card ---
+        // Scrim
         let overlay = container(
             container(modal_card)
                 .width(Length::Fill)
@@ -437,12 +435,11 @@ impl Gui {
                 r: 0.0,
                 g: 0.0,
                 b: 0.0,
-                a: 0.55, // translucent scrim
+                a: 0.55,
             })),
             ..Default::default()
         });
 
-        // Stack base + overlay (overlay on top)
         stack![main_stack, overlay].into()
     }
 }

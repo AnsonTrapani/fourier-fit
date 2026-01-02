@@ -1,7 +1,6 @@
 use iced::mouse;
 use iced::widget::canvas::{self, Fill, Geometry, Path, Stroke, Style};
 use iced::{Color, Point, Rectangle, Renderer, Size};
-// use iced::border::Radius;
 
 pub struct Background;
 
@@ -20,7 +19,7 @@ impl<Message> canvas::Program<Message> for Background {
             let w = bounds.width;
             let h = bounds.height;
 
-            // 1) Base: dark, slightly purple-tinted (so "starts darker")
+            // Base color definition
             let base = Path::rectangle(Point::ORIGIN, Size::new(w, h));
             frame.fill(
                 &base,
@@ -30,12 +29,12 @@ impl<Message> canvas::Program<Message> for Background {
                 },
             );
 
-            // 2) Edge glow: many inset strokes that fade slowly toward center
-            // Tune these 3 knobs:
-            let steps: usize = 140; // more = smoother + "lasts longer"
-            let glow_thickness = 0.38; // fraction of min(w,h) that glow extends inward
-            let max_alpha = 0.38; // strength at the edge
-            let falloff = 1.15; // lower (~0.9) = slower fade; higher = faster fade
+            // Edge glow construction
+            // Tunable params
+            let steps: usize = 140; // Higher val makes smoother
+            let glow_thickness = 0.38; // fraction that glow extends inward
+            let max_alpha = 0.38; // strength of glow at edge
+            let falloff = 1.15; // lower makes fade slower
 
             let s = w.min(h);
             let max_inset = s * glow_thickness;
@@ -47,10 +46,10 @@ impl<Message> canvas::Program<Message> for Background {
                 // slow falloff toward center
                 let a = (1.0 - t).powf(falloff) * max_alpha;
 
-                // edge-purple (adjust these RGBs to taste)
+                // edge-purple
                 let glow = Color::from_rgba(0.21, 0.0, 0.31, a);
 
-                // rounded rect hugging the window edge, then inset inward
+                // rounded rect hugging the window edge
                 let x = inset;
                 let y = inset;
                 let rw = (w - 2.0 * inset).max(1.0);
@@ -61,7 +60,7 @@ impl<Message> canvas::Program<Message> for Background {
                 frame.stroke(
                     &rr,
                     Stroke {
-                        // wider strokes near the edge feel more “glowy”
+                        // wider strokes near the edge
                         width: 2.4 + 2.6 * (1.0 - t),
                         style: Style::Solid(glow),
                         ..Stroke::default()
