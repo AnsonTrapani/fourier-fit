@@ -338,7 +338,7 @@ impl Gui {
             return main_stack.into();
         }
         // --- Modal content (the “card”) ---
-        let with_date = iced_aw::DatePicker::new(true, self.modal_state.selected_datetime.date_naive(),
+        let with_date = iced_aw::DatePicker::new(true, self.modal_state.selected_datetime,
     column![text("Date selection:").width(Length::Shrink)].align_x(iced::Alignment::Center).width(Length::Fill).height(Length::FillPortion(1)),
     Message::CloseDataModal, Message::UpdateDate);
         let modal_card = container(

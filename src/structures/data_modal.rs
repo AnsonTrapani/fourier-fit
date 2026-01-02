@@ -5,16 +5,16 @@ use crate::{DEFAULT_FILENAME, is_file_empty};
 pub struct DataModalState {
     pub show_modal: bool,
     pub weight_entry: String,
-    pub data: std::collections::HashMap<chrono::DateTime<chrono::Local>, f64>,
-    pub selected_datetime: chrono::DateTime<chrono::Local>,
+    pub data: std::collections::HashMap<chrono::NaiveDate, f64>,
+    pub selected_datetime: chrono::NaiveDate,
     pub date_status: String,
     pub file: Option<std::path::PathBuf>
 }
 
 impl DataModalState {
     pub fn new(f: Option<std::path::PathBuf>) -> Self {
-        let dt = chrono::Local::now();
-        let mut dt_str = format!("Current date: {}", dt.date_naive());
+        let dt = chrono::Local::now().date_naive();
+        let mut dt_str = format!("Current date: {}", dt);
         let mut map = None;
         let mut ret_f = None;
         if let Some(file) = f {
@@ -67,9 +67,9 @@ impl DataModalState {
         Ok(())
     }
 
-    pub fn switch_date_state(&mut self, date_time: chrono::DateTime<chrono::Local>) {
+    pub fn switch_date_state(&mut self, date_time: chrono::NaiveDate) {
         self.selected_datetime = date_time;
-        self.date_status = format!("Current date: {}", self.selected_datetime.date_naive());
+        self.date_status = format!("Current date: {}", self.selected_datetime);
         self.weight_entry = match self.data.get(&self.selected_datetime) {
             Some(&v) => v.to_string(),
             None => String::new()
