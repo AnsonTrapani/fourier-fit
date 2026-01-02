@@ -1,9 +1,9 @@
+use crate::*;
+use iced::Theme;
 use iced::border::Radius;
 use iced::mouse;
 use iced::widget::canvas::{self, Cache, Fill, Geometry, Path, Stroke, Style, Text};
-use iced::Theme;
 use iced::{Color, Point, Rectangle, Renderer, Size};
-use crate::*;
 
 pub struct TimeSeriesPlotView<'a> {
     pub raw: Option<&'a [f64]>,

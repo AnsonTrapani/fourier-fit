@@ -8,7 +8,7 @@ pub struct DataModalState {
     pub data: std::collections::HashMap<chrono::NaiveDate, f64>,
     pub selected_datetime: chrono::NaiveDate,
     pub date_status: String,
-    pub file: Option<std::path::PathBuf>
+    pub file: Option<std::path::PathBuf>,
 }
 
 impl DataModalState {
@@ -22,28 +22,25 @@ impl DataModalState {
             let exists_res = std::fs::exists(&file);
             if let Ok(false) = exists_res {
                 dt_str = format!("{file_str} does not exist");
-            }
-            else if exists_res.is_err() {
+            } else if exists_res.is_err() {
                 dt_str = format!("Unable to verify the existence of {file_str}");
-            }
-            else {
+            } else {
                 if let Ok(ifile) = std::fs::File::open(&file) {
                     if is_file_empty(&file) {
                         map = Some(std::collections::HashMap::new());
                         ret_f = Some(file);
                     } else {
-                    match serde_json::from_reader(&ifile) {
-                        Ok(m) => {
-                            map = Some(m);
-                            ret_f = Some(file);
-                        }
-                        Err(_) => {
-                            dt_str = format!("Could not convert {file_str} into HashMap");
+                        match serde_json::from_reader(&ifile) {
+                            Ok(m) => {
+                                map = Some(m);
+                                ret_f = Some(file);
+                            }
+                            Err(_) => {
+                                dt_str = format!("Could not convert {file_str} into HashMap");
+                            }
                         }
                     }
-                }
-                }
-                else {
+                } else {
                     dt_str = format!("Unable to open file {file_str}");
                 }
             }
@@ -54,14 +51,14 @@ impl DataModalState {
             data: map.unwrap_or_default(),
             selected_datetime: dt,
             date_status: dt_str,
-            file: ret_f
+            file: ret_f,
         }
     }
 
     pub fn log_weight_change(&mut self) -> Result<(), String> {
         let entry = match self.weight_entry.parse::<f64>() {
             Ok(e) => e,
-            Err(_) => return Err(format!("{} is not a number.", self.weight_entry))
+            Err(_) => return Err(format!("{} is not a number.", self.weight_entry)),
         };
         self.data.insert(self.selected_datetime, entry);
         Ok(())
@@ -72,7 +69,7 @@ impl DataModalState {
         self.date_status = format!("Current date: {}", self.selected_datetime);
         self.weight_entry = match self.data.get(&self.selected_datetime) {
             Some(&v) => v.to_string(),
-            None => String::new()
+            None => String::new(),
         };
     }
 }

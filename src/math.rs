@@ -1,3 +1,6 @@
+use ndarray::Array2;
+use ndarray_linalg::EigVals;
+use num_complex::Complex;
 use sci_rs::signal::filter::{
     design::{
         DigitalFilter, FilterBandType, FilterOutputType, FilterType, Sos, SosFormatFilter,
@@ -5,11 +8,8 @@ use sci_rs::signal::filter::{
     },
     sosfiltfilt_dyn,
 };
-use scirs2::signal::filter;
 use scirs2::fft::rfft;
-use num_complex::Complex;
-use ndarray::Array2;
-use ndarray_linalg::EigVals;
+use scirs2::signal::filter;
 
 pub const NYQUIST_PERIOD: f64 = 2.;
 

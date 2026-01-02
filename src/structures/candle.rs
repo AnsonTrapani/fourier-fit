@@ -13,7 +13,10 @@ pub fn vec_to_candles(data: &[f64], num_per_candle: usize) -> Result<Vec<Candle>
     }
     let mut candles: Vec<Candle> =
         Vec::with_capacity((data.len() as f64 / num_per_candle as f64).ceil() as usize);
-    let chunks: Vec<&[f64]> = (0..data.len()).step_by(num_per_candle).map(|i| &data[i..(i + num_per_candle + 1).min(data.len())]).collect();
+    let chunks: Vec<&[f64]> = (0..data.len())
+        .step_by(num_per_candle)
+        .map(|i| &data[i..(i + num_per_candle + 1).min(data.len())])
+        .collect();
     for (i, &chunk) in chunks.iter().enumerate() {
         candles.push(Candle {
             t: i as f64,

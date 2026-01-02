@@ -1,9 +1,9 @@
 use crate::Message;
+use crate::structures::candle::Candle;
 use iced::widget::canvas;
 use iced::widget::canvas::{Cache, Fill, Frame, Geometry, Path, Stroke, Text};
 use iced::{Color, Point, Rectangle, Renderer, Size, Theme};
 use std::default::Default;
-use crate::structures::candle::Candle;
 
 pub struct CandlePanelView<'a> {
     pub zeros: Option<&'a [num_complex::Complex64]>,
@@ -299,8 +299,8 @@ impl<'a> canvas::Program<Message> for CandlePanelView<'a> {
                     }
 
                     let i = i as f32;
-                    let x0 = x_for(i as f32);
-                    let xc = wick_x_for(i as f32);
+                    let x0 = x_for(i);
+                    let xc = wick_x_for(i);
 
                     let y_open = map_y(c.open);
                     let y_close = map_y(c.close);

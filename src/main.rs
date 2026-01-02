@@ -1,12 +1,12 @@
 use fourier_fit::logic;
+use fourier_fit::structures::data_modal;
 use fourier_fit::views;
 use fourier_fit::*;
-use fourier_fit::structures::data_modal;
 use iced::widget::Canvas;
 use iced::widget::canvas::Cache;
 use iced::{
     Alignment, Element, Length, Theme,
-    widget::{button, column, pick_list, row, stack, text, text_input, container},
+    widget::{button, column, container, pick_list, row, stack, text, text_input},
 };
 
 const BOLD: iced::Font = iced::Font::with_name("Inter ExtraBold");
@@ -49,17 +49,25 @@ impl Gui {
         // Optional: populate demo data so Calculate works immediately
         let file = weight_file().unwrap_or(DEFAULT_FILENAME.into());
         // println!("File: {}", file.to_string_lossy());
-        let modal_state = data_modal::DataModalState::new(if create_file_perhaps(&file).is_ok() {Some(file)} else {None});
-        let error = if modal_state.file.is_none() {Some(modal_state.date_status.clone())} else {None};
+        let modal_state = data_modal::DataModalState::new(if create_file_perhaps(&file).is_ok() {
+            Some(file)
+        } else {
+            None
+        });
+        let error = if modal_state.file.is_none() {
+            Some(modal_state.date_status.clone())
+        } else {
+            None
+        };
 
         Self {
             app,
-            modal_state: modal_state,
+            modal_state,
             cutoff_s: "".into(),
             order_s: "".into(),
             ripple_s: "".into(),
             attenuation_s: "".into(),
-            error: error,
+            error,
             zeros_out: String::new(),
             poles_out: String::new(),
             plot_cache: Cache::new(),
@@ -180,20 +188,20 @@ impl Gui {
                 self.fft_cache.clear();
                 self.bode_cache.clear();
                 self.candles_cache.clear();
-            },
+            }
             Message::WeightSelectionChanged(s) => self.modal_state.weight_entry = s,
             Message::OpenDataModal => self.modal_state.show_modal = true,
             Message::CloseDataModal => self.modal_state.show_modal = false,
-            Message::UpdateDate(d) => {
-                match logic::iced_date_to_local_datetime(d) {
-                    Ok(date) => self.modal_state.switch_date_state(date),
-                    Err(e) => self.modal_state.date_status = e,
+            Message::UpdateDate(d) => match logic::iced_date_to_local_datetime(d) {
+                Ok(date) => self.modal_state.switch_date_state(date),
+                Err(e) => self.modal_state.date_status = e,
+            },
+            Message::SaveWeightSelection => {
+                if let Err(e) = self.modal_state.log_weight_change() {
+                    self.modal_state.date_status = e;
                 }
             }
-            Message::SaveWeightSelection => if let Err(e) = self.modal_state.log_weight_change() {
-                self.modal_state.date_status = e;
-            },
-            Message::NoOp => {},
+            Message::NoOp => {}
         }
     }
 
@@ -230,7 +238,11 @@ impl Gui {
             row![
                 text("Cutoff period (days):").width(Length::Shrink),
                 text_input("e.g. 4.2", &self.cutoff_s)
-                    .on_input_maybe(if !self.modal_state.show_modal {Some(Message::CutoffChanged)} else {None})
+                    .on_input_maybe(if !self.modal_state.show_modal {
+                        Some(Message::CutoffChanged)
+                    } else {
+                        None
+                    })
                     .width(Length::FillPortion(1)),
             ]
             .spacing(12)
@@ -238,23 +250,47 @@ impl Gui {
             row![
                 text("Order:").width(Length::Shrink),
                 text_input("e.g. 4", &self.order_s)
-                    .on_input_maybe(if !self.modal_state.show_modal {Some(Message::OrderChanged)} else {None})
+                    .on_input_maybe(if !self.modal_state.show_modal {
+                        Some(Message::OrderChanged)
+                    } else {
+                        None
+                    })
                     .width(Length::FillPortion(1)),
                 text("Ripple (dB):").width(Length::Shrink),
                 text_input("e.g. 5", &self.ripple_s)
-                    .on_input_maybe(if !self.modal_state.show_modal {Some(Message::RippleChanged)} else {None})
+                    .on_input_maybe(if !self.modal_state.show_modal {
+                        Some(Message::RippleChanged)
+                    } else {
+                        None
+                    })
                     .width(Length::FillPortion(1)),
                 text("Attenuation (dB):").width(Length::Shrink),
                 text_input("e.g. 40", &self.attenuation_s)
-                    .on_input_maybe(if !self.modal_state.show_modal {Some(Message::AttenuationChanged)} else {None})
+                    .on_input_maybe(if !self.modal_state.show_modal {
+                        Some(Message::AttenuationChanged)
+                    } else {
+                        None
+                    })
                     .width(Length::FillPortion(1)),
             ]
             .spacing(12)
             .align_y(Alignment::Center),
             row![
-                button("Edit/Load Data").on_press_maybe(if !self.modal_state.show_modal {Some(Message::OpenDataModal)} else {None}),
-                button("Calculate").on_press_maybe(if !self.modal_state.show_modal {Some(Message::Calculate)} else {None}),
-                button("Clear").on_press_maybe(if !self.modal_state.show_modal {Some(Message::ClearOutput)} else {None}),
+                button("Edit/Load Data").on_press_maybe(if !self.modal_state.show_modal {
+                    Some(Message::OpenDataModal)
+                } else {
+                    None
+                }),
+                button("Calculate").on_press_maybe(if !self.modal_state.show_modal {
+                    Some(Message::Calculate)
+                } else {
+                    None
+                }),
+                button("Clear").on_press_maybe(if !self.modal_state.show_modal {
+                    Some(Message::ClearOutput)
+                } else {
+                    None
+                }),
             ]
             .spacing(12),
             if let Some(err) = &self.error {
@@ -322,10 +358,22 @@ impl Gui {
         .height(Length::Fill);
 
         let content = row![
-            column![controls, text("Candle View").font(BOLD), candle_panel].padding(16).spacing(5),
-            column![row![column![text("Pole/Zero Plot").font(BOLD), pz], column![text("Bode Plot").font(BOLD), filter_tf_bode]].spacing(5), text("Time Domain").font(BOLD), ts, text("Frequency Domain").font(BOLD), fft]
+            column![controls, text("Candle View").font(BOLD), candle_panel]
                 .padding(16)
                 .spacing(5),
+            column![
+                row![
+                    column![text("Pole/Zero Plot").font(BOLD), pz],
+                    column![text("Bode Plot").font(BOLD), filter_tf_bode]
+                ]
+                .spacing(5),
+                text("Time Domain").font(BOLD),
+                ts,
+                text("Frequency Domain").font(BOLD),
+                fft
+            ]
+            .padding(16)
+            .spacing(5),
         ];
 
         let main_stack = stack![
@@ -338,26 +386,33 @@ impl Gui {
             return main_stack.into();
         }
         // --- Modal content (the “card”) ---
-        let with_date = iced_aw::DatePicker::new(true, self.modal_state.selected_datetime,
-    column![text("Date selection:").width(Length::Shrink)].align_x(iced::Alignment::Center).width(Length::Fill).height(Length::FillPortion(1)),
-    Message::CloseDataModal, Message::UpdateDate);
+        let with_date = iced_aw::DatePicker::new(
+            true,
+            self.modal_state.selected_datetime,
+            column![text("Date selection:").width(Length::Shrink)]
+                .align_x(iced::Alignment::Center)
+                .width(Length::Fill)
+                .height(Length::FillPortion(1)),
+            Message::CloseDataModal,
+            Message::UpdateDate,
+        );
         let modal_card = container(
-            column![with_date,
+            column![
+                with_date,
                 text("Edit details").size(22),
                 text(&self.modal_state.date_status),
                 text_input("", &self.modal_state.weight_entry)
                     .on_input(Message::WeightSelectionChanged),
-                row![
-                    button("Save").on_press(Message::SaveWeightSelection),
-                ]
-                .spacing(12),
+                row![button("Save").on_press(Message::SaveWeightSelection),].spacing(12),
             ]
             .spacing(12)
             .padding(16),
         )
         .width(Length::Fixed(420.0))
         .style(|_theme: &Theme| container::Style {
-            background: Some(iced::Background::Color(iced::Color::from_rgb8(0x1f, 0x1f, 0x1f))),
+            background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                0x1f, 0x1f, 0x1f,
+            ))),
             text_color: Some(iced::Color::WHITE),
             border: iced::Border {
                 radius: 12.0.into(),
@@ -379,7 +434,10 @@ impl Gui {
         .height(Length::Fill)
         .style(|_theme: &Theme| container::Style {
             background: Some(iced::Background::Color(iced::Color {
-                r: 0.0, g: 0.0, b: 0.0, a: 0.55, // translucent scrim
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 0.55, // translucent scrim
             })),
             ..Default::default()
         });

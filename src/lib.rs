@@ -1,13 +1,13 @@
-pub mod math;
-pub mod views;
-pub mod structures;
 pub mod logic;
+pub mod math;
+pub mod structures;
+pub mod views;
 use std::{io, path::PathBuf};
 
+use iced::Color;
 use math::{
     FilterData, NYQUIST_PERIOD, butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
 };
-use iced::Color;
 use num_complex::Complex;
 
 const DEFAULT_ORDER: usize = 4;
@@ -93,8 +93,11 @@ impl App {
             Ok((z, p)) => (Some(z), Some(p)),
             Err(s) => return Err(s),
         };
-        self.candles =
-            structures::candle::vec_to_candles(self.raw_data.as_deref().unwrap(), self.candle_length.into()).ok();
+        self.candles = structures::candle::vec_to_candles(
+            self.raw_data.as_deref().unwrap(),
+            self.candle_length.into(),
+        )
+        .ok();
         Ok(())
     }
 
@@ -195,12 +198,15 @@ pub fn glow_purple() -> Color {
 
 pub fn weight_file() -> Result<PathBuf, String> {
     if let Some(username) = users::get_current_username() {
-        return Ok(PathBuf::from(CONFIG_DIR_PREFIX).join(username).join(CONFIG_DIR_SUFFIX).join(DEFAULT_FILENAME));
+        return Ok(PathBuf::from(CONFIG_DIR_PREFIX)
+            .join(username)
+            .join(CONFIG_DIR_SUFFIX)
+            .join(DEFAULT_FILENAME));
     }
     Err("Could not get username of current user".into())
 }
 
-pub fn create_file_perhaps(file_path: &std::path::PathBuf) -> io::Result<()>{
+pub fn create_file_perhaps(file_path: &std::path::PathBuf) -> io::Result<()> {
     let ok_res = std::fs::exists(file_path)?;
     if !ok_res {
         if let Some(parent_directory) = (file_path).parent() {
