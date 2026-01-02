@@ -47,16 +47,19 @@ impl Gui {
     fn default() -> Self {
         let app = App::new();
         // Optional: populate demo data so Calculate works immediately
-        // app.set_demo_data();
+        let file = weight_file().unwrap_or(DEFAULT_FILENAME.into());
+        // println!("File: {}", file.to_string_lossy());
+        let modal_state = data_modal::DataModalState::new(if create_file_perhaps(&file).is_ok() {Some(file)} else {None});
+        let error = if modal_state.file.is_none() {Some(modal_state.date_status.clone())} else {None};
 
         Self {
             app,
-            modal_state: data_modal::DataModalState::new(),
+            modal_state: modal_state,
             cutoff_s: "".into(),
             order_s: "".into(),
             ripple_s: "".into(),
             attenuation_s: "".into(),
-            error: None,
+            error: error,
             zeros_out: String::new(),
             poles_out: String::new(),
             plot_cache: Cache::new(),
@@ -183,10 +186,13 @@ impl Gui {
             Message::CloseDataModal => self.modal_state.show_modal = false,
             Message::UpdateDate(d) => {
                 match logic::iced_date_to_local_datetime(d) {
-                    Ok(date) => self.modal_state.selected_datetime = date,
-                    Err(e) => self.error = Some(e),
+                    Ok(date) => self.modal_state.switch_date_state(date),
+                    Err(e) => self.modal_state.date_status = e,
                 }
             }
+            Message::SaveWeightSelection => if let Err(e) = self.modal_state.log_weight_change() {
+                self.modal_state.date_status = e;
+            },
             Message::NoOp => {},
         }
     }
@@ -334,14 +340,15 @@ impl Gui {
         // --- Modal content (the “card”) ---
         let with_date = iced_aw::DatePicker::new(true, self.modal_state.selected_datetime.date_naive(),
     column![text("Date selection:").width(Length::Shrink)].align_x(iced::Alignment::Center).width(Length::Fill).height(Length::FillPortion(1)),
-    Message::NoOp, Message::UpdateDate);
+    Message::CloseDataModal, Message::UpdateDate);
         let modal_card = container(
             column![with_date,
                 text("Edit details").size(22),
+                text(&self.modal_state.date_status),
                 text_input("", &self.modal_state.weight_entry)
                     .on_input(Message::WeightSelectionChanged),
                 row![
-                    button("Close").on_press(Message::CloseDataModal),
+                    button("Save").on_press(Message::SaveWeightSelection),
                 ]
                 .spacing(12),
             ]

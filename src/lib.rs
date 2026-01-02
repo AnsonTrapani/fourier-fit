@@ -2,6 +2,8 @@ pub mod math;
 pub mod views;
 pub mod structures;
 pub mod logic;
+use std::{io, path::PathBuf};
+
 use math::{
     FilterData, NYQUIST_PERIOD, butterworth_filter, chebyshev_filter_1, chebyshev_filter_2,
 };
@@ -11,6 +13,17 @@ use num_complex::Complex;
 const DEFAULT_ORDER: usize = 4;
 const DEFAULT_RIPPLE: f64 = 5.;
 const DEFAULT_ATTENUATION: f64 = 40.;
+pub const DEFAULT_FILENAME: &str = "fourier_fit_data.json";
+#[cfg(target_os = "windows")]
+const CONFIG_DIR_PREFIX: &str = "C:\\Users";
+#[cfg(target_os = "linux")]
+const CONFIG_DIR_PREFIX: &str = "/home";
+#[cfg(target_os = "macos")]
+const CONFIG_DIR_PREFIX: &str = "/Users";
+#[cfg(target_os = "windows")]
+const CONFIG_DIR_SUFIX: &str = "AppData\\Roaming";
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+const CONFIG_DIR_SUFFIX: &str = ".config";
 
 #[derive(Default)]
 pub struct App {
@@ -147,7 +160,8 @@ pub enum Message {
     CloseDataModal,
     WeightSelectionChanged(String),
     NoOp,
-    UpdateDate(iced_aw::date_picker::Date)
+    UpdateDate(iced_aw::date_picker::Date),
+    SaveWeightSelection,
 }
 
 pub fn fmt_tick(v: f64) -> String {
@@ -178,3 +192,28 @@ pub fn label_color() -> Color {
 pub fn glow_purple() -> Color {
     Color::from_rgb8(0xB7, 0x63, 0xFF)
 } // accent
+
+pub fn weight_file() -> Result<PathBuf, String> {
+    if let Some(username) = users::get_current_username() {
+        return Ok(PathBuf::from(CONFIG_DIR_PREFIX).join(username).join(CONFIG_DIR_SUFFIX).join(DEFAULT_FILENAME));
+    }
+    Err("Could not get username of current user".into())
+}
+
+pub fn create_file_perhaps(file_path: &std::path::PathBuf) -> io::Result<()>{
+    let ok_res = std::fs::exists(file_path)?;
+    if !ok_res {
+        if let Some(parent_directory) = (file_path).parent() {
+            std::fs::create_dir_all(parent_directory)?;
+        }
+        std::fs::File::create(file_path)?;
+    }
+    Ok(())
+}
+
+fn is_file_empty(file_path: &std::path::Path) -> bool {
+    match std::fs::metadata(file_path) {
+        Ok(metadata) => metadata.len() == 0,
+        Err(_) => false,
+    }
+}
