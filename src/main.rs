@@ -1,0 +1,452 @@
+use fourier_fit::logic;
+use fourier_fit::structures::data_modal;
+use fourier_fit::views;
+use fourier_fit::*;
+use iced::widget::Canvas;
+use iced::widget::canvas::Cache;
+use iced::{
+    Alignment, Element, Length, Theme,
+    widget::{button, column, container, pick_list, row, stack, text, text_input},
+};
+
+const BOLD: iced::Font = iced::Font::with_name("Inter ExtraBold");
+
+pub fn main() -> iced::Result {
+    iced::application(Gui::default, Gui::update, Gui::view)
+        .theme(Theme::Dark)
+        .centered()
+        .run()
+}
+
+#[derive(Default)]
+struct Gui {
+    // Mathematics state
+    app: App,
+
+    // Data modal state
+    modal_state: data_modal::DataModalState,
+
+    // Store inputs
+    cutoff_s: String,
+    order_s: String,
+    ripple_s: String,
+    attenuation_s: String,
+
+    // Output
+    status: String,
+    zeros_out: String,
+    poles_out: String,
+    plot_cache: Cache,
+    ts_cache: Cache,
+    fft_cache: Cache,
+    bode_cache: Cache,
+    candles_cache: Cache,
+}
+
+impl Gui {
+    fn default() -> Self {
+        let mut app = App::new();
+        let file = weight_file().unwrap_or(DEFAULT_FILENAME.into());
+        let modal_state = data_modal::DataModalState::new(if create_file_perhaps(&file).is_ok() {
+            Some(file)
+        } else {
+            None
+        });
+        let error = if modal_state.file.is_none() {
+            modal_state.date_status.clone()
+        } else {
+            String::new()
+        };
+        app.set_app_data(modal_state.get_vals_sorted_by_date());
+
+        Self {
+            app,
+            modal_state,
+            cutoff_s: "".into(),
+            order_s: "".into(),
+            ripple_s: "".into(),
+            attenuation_s: "".into(),
+            status: error,
+            zeros_out: String::new(),
+            poles_out: String::new(),
+            plot_cache: Cache::new(),
+            ts_cache: Cache::new(),
+            fft_cache: Cache::new(),
+            bode_cache: Cache::new(),
+            candles_cache: Cache::new(),
+        }
+    }
+
+    fn update(&mut self, message: Message) {
+        match message {
+            Message::FilterChanged(t) => {
+                self.app.set_filter_type(t);
+            }
+            Message::CandleLengthsChanged(t) => {
+                self.app.candle_length = t;
+            }
+            Message::CutoffChanged(s) => self.cutoff_s = s,
+            Message::OrderChanged(s) => self.order_s = s,
+            Message::RippleChanged(s) => self.ripple_s = s,
+            Message::AttenuationChanged(s) => self.attenuation_s = s,
+
+            Message::LoadDemo => {
+                self.app.set_app_data(demo_data());
+                self.status = String::from("Loaded demo data");
+            }
+
+            Message::ClearOutput => {
+                self.status.replace_range(.., "");
+                self.zeros_out.clear();
+                self.poles_out.clear();
+                self.plot_cache.clear();
+                self.ts_cache.clear();
+                self.fft_cache.clear();
+                self.bode_cache.clear();
+                self.candles_cache.clear();
+            }
+
+            Message::Calculate => {
+                self.status.replace_range(.., "");
+
+                // Parse inputs
+                let cutoff = match self.cutoff_s.trim().parse::<f64>() {
+                    Ok(v) => match math::cutoff_period_to_nyquist(v) {
+                        Ok(w) => w,
+                        Err(e) => {
+                            self.status = format!("Error: {e}");
+                            return;
+                        }
+                    },
+                    Err(e) => {
+                        self.status = format!("cutoff parse error: {e}");
+                        return;
+                    }
+                };
+                let order = match self.order_s.trim().parse::<usize>() {
+                    Ok(v) => v,
+                    Err(e) => {
+                        self.status = format!("order parse error: {e}");
+                        return;
+                    }
+                };
+                let ripple = match self.ripple_s.trim().parse::<f64>() {
+                    Ok(v) => v,
+                    Err(e) => {
+                        self.status = format!("ripple parse error: {e}");
+                        return;
+                    }
+                };
+                let attenuation = match self.attenuation_s.trim().parse::<f64>() {
+                    Ok(v) => v,
+                    Err(e) => {
+                        self.status = format!("attenuation parse error: {e}");
+                        return;
+                    }
+                };
+
+                self.app.set_cutoff(cutoff);
+                self.app.set_order(order);
+                self.app.set_ripple(ripple);
+                self.app.set_attenuation(attenuation);
+
+                // Run computation
+                if let Err(e) = self.app.filter() {
+                    self.status = format!("Error: {e}");
+                    return;
+                }
+                if let Err(e) = self.app.fft_filtered() {
+                    self.status = format!("Error: {e}");
+                    return;
+                }
+                if let Err(e) = self.app.generate_bode() {
+                    self.status = format!("Error: {e}");
+                    return;
+                }
+
+                // Format output
+                self.zeros_out = match &self.app.zeros {
+                    Some(z) if !z.is_empty() => z
+                        .iter()
+                        .map(|c| format!("{:+.6} {:+.6}j", c.re, c.im))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                    _ => "(none)".into(),
+                };
+
+                self.poles_out = match &self.app.poles {
+                    Some(p) if !p.is_empty() => p
+                        .iter()
+                        .map(|c| format!("{:+.6} {:+.6}j", c.re, c.im))
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                    _ => "(none)".into(),
+                };
+                self.plot_cache.clear();
+                self.ts_cache.clear();
+                self.fft_cache.clear();
+                self.bode_cache.clear();
+                self.candles_cache.clear();
+            }
+            Message::WeightSelectionChanged(s) => self.modal_state.weight_entry = s,
+            Message::OpenDataModal => self.modal_state.show_modal = true,
+            Message::CloseDataModal => {
+                self.modal_state.show_modal = false;
+                let sorted = self.modal_state.get_vals_sorted_by_date();
+                self.status = format!("Total data points: {}", sorted.len());
+                self.app.set_app_data(sorted);
+            }
+            Message::UpdateDate(d) => match logic::iced_date_to_local_datetime(d) {
+                Ok(date) => self.modal_state.switch_date_state(date),
+                Err(e) => self.modal_state.date_status = e,
+            },
+            Message::SaveWeightSelection => {
+                if let Err(e) = self.modal_state.log_weight_change() {
+                    self.modal_state.date_status = e;
+                }
+            }
+            Message::NoOp => {}
+        }
+    }
+
+    fn view(&self) -> Element<'_, Message> {
+        let filter_options = [
+            structures::filters::FilterType::BUTTERWORTH,
+            structures::filters::FilterType::CHEBYSHEV1,
+            structures::filters::FilterType::CHEBYSHEV2,
+        ];
+        let candle_options = [
+            structures::candle::CandleLengths::Weekly,
+            structures::candle::CandleLengths::Monthly,
+            structures::candle::CandleLengths::Yearly,
+        ];
+
+        let controls = column![
+            row![
+                text("Filter:").width(Length::Shrink),
+                pick_list(
+                    filter_options,
+                    Some(self.app.filter),
+                    Message::FilterChanged
+                )
+                .width(Length::Fill),
+                text("Candle Lengths:").width(Length::Shrink),
+                pick_list(
+                    candle_options,
+                    Some(self.app.candle_length),
+                    Message::CandleLengthsChanged
+                )
+            ]
+            .spacing(12)
+            .align_y(Alignment::Center),
+            row![
+                text("Cutoff period (days):").width(Length::Shrink),
+                text_input("e.g. 4.2", &self.cutoff_s)
+                    .on_input_maybe(if !self.modal_state.show_modal {
+                        Some(Message::CutoffChanged)
+                    } else {
+                        None
+                    })
+                    .width(Length::FillPortion(1)),
+            ]
+            .spacing(12)
+            .align_y(Alignment::Center),
+            row![
+                text("Order:").width(Length::Shrink),
+                text_input("e.g. 4", &self.order_s)
+                    .on_input_maybe(if !self.modal_state.show_modal {
+                        Some(Message::OrderChanged)
+                    } else {
+                        None
+                    })
+                    .width(Length::FillPortion(1)),
+                text("Ripple (dB):").width(Length::Shrink),
+                text_input("e.g. 5", &self.ripple_s)
+                    .on_input_maybe(if !self.modal_state.show_modal {
+                        Some(Message::RippleChanged)
+                    } else {
+                        None
+                    })
+                    .width(Length::FillPortion(1)),
+                text("Attenuation (dB):").width(Length::Shrink),
+                text_input("e.g. 40", &self.attenuation_s)
+                    .on_input_maybe(if !self.modal_state.show_modal {
+                        Some(Message::AttenuationChanged)
+                    } else {
+                        None
+                    })
+                    .width(Length::FillPortion(1)),
+            ]
+            .spacing(12)
+            .align_y(Alignment::Center),
+            row![
+                button("Edit/Load Data").on_press_maybe(if !self.modal_state.show_modal {
+                    Some(Message::OpenDataModal)
+                } else {
+                    None
+                }),
+                button("Calculate").on_press_maybe(if !self.modal_state.show_modal {
+                    Some(Message::Calculate)
+                } else {
+                    None
+                }),
+                button("Clear").on_press_maybe(if !self.modal_state.show_modal {
+                    Some(Message::ClearOutput)
+                } else {
+                    None
+                }),
+                button("Demo Data").on_press_maybe(if !self.modal_state.show_modal {
+                    Some(Message::LoadDemo)
+                } else {
+                    None
+                })
+            ]
+            .spacing(12),
+            text(&self.status)
+        ]
+        .spacing(14);
+
+        let pz = Canvas::new(views::pz::PzPlotView {
+            zeros: self.app.zeros.as_deref(),
+            poles: self.app.poles.as_deref(),
+            cache: &self.plot_cache,
+        })
+        .width(Length::Fill)
+        .height(Length::FillPortion(1));
+
+        let filter_tf_bode = Canvas::new(views::bode::BodeView {
+            freqs: if self.app.bode_plot.is_some() {
+                Some(&self.app.bode_plot.as_ref().unwrap().0)
+            } else {
+                None
+            },
+            mag_db: if self.app.bode_plot.is_some() {
+                Some(&self.app.bode_plot.as_ref().unwrap().1)
+            } else {
+                None
+            },
+            cache: &self.bode_cache,
+            x_label: "Frequency (cycles/day)",
+        })
+        .width(Length::Fill)
+        .height(Length::FillPortion(1));
+
+        let filtered = self
+            .app
+            .filtered_data
+            .as_ref()
+            .map(|f| f.filtered_data.as_slice());
+
+        let ts = Canvas::new(views::time::TimeSeriesPlotView {
+            raw: self.app.raw_data.as_deref(),
+            filtered,
+            cache: &self.ts_cache,
+        })
+        .width(Length::Fill)
+        .height(Length::FillPortion(1));
+
+        let fft = Canvas::new(views::frequency::SpectralView {
+            fft_out: self.app.data_spectrum.as_deref(),
+            cache: &self.fft_cache,
+        })
+        .width(Length::Fill)
+        .height(Length::FillPortion(1));
+
+        let candle_panel = Canvas::new(views::candles::CandlePanelView {
+            zeros: self.app.zeros.as_deref(),
+            poles: self.app.poles.as_deref(),
+            candles: self.app.candles.as_deref(),
+            cache: &self.candles_cache,
+            title: "Candle View",
+        })
+        .width(Length::Fill)
+        .height(Length::Fill);
+
+        let content = row![
+            column![controls, text("Candle View").font(BOLD), candle_panel]
+                .padding(16)
+                .spacing(5),
+            column![
+                row![
+                    column![text("Pole/Zero Plot").font(BOLD), pz],
+                    column![text("Bode Plot").font(BOLD), filter_tf_bode]
+                ]
+                .spacing(5),
+                text("Time Domain").font(BOLD),
+                ts,
+                text("Frequency Domain").font(BOLD),
+                fft
+            ]
+            .padding(16)
+            .spacing(5),
+        ];
+
+        let main_stack = stack![
+            Canvas::new(views::background::Background)
+                .width(Length::Fill)
+                .height(Length::Fill),
+            content,
+        ];
+        if !self.modal_state.show_modal {
+            return main_stack.into();
+        }
+        // Modal content
+        let with_date = iced_aw::DatePicker::new(
+            true,
+            self.modal_state.selected_datetime,
+            column![text("Date selection:").width(Length::Shrink)]
+                .align_x(iced::Alignment::Center)
+                .width(Length::Fill)
+                .height(Length::FillPortion(1)),
+            Message::CloseDataModal,
+            Message::UpdateDate,
+        );
+        let modal_card = container(
+            column![
+                with_date,
+                text("Edit details").size(22),
+                text(&self.modal_state.date_status),
+                text_input("", &self.modal_state.weight_entry)
+                    .on_input(Message::WeightSelectionChanged),
+                row![button("Save").on_press(Message::SaveWeightSelection),].spacing(12),
+            ]
+            .spacing(12)
+            .padding(16),
+        )
+        .width(Length::Fixed(420.0))
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                0x1f, 0x1f, 0x1f,
+            ))),
+            text_color: Some(iced::Color::WHITE),
+            border: iced::Border {
+                radius: 12.0.into(),
+                width: 1.0,
+                color: iced::Color::from_rgb8(0x44, 0x44, 0x44),
+            },
+            ..Default::default()
+        });
+
+        // Scrim
+        let overlay = container(
+            container(modal_card)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(iced::alignment::Horizontal::Center)
+                .align_y(iced::alignment::Vertical::Center),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .style(|_theme: &Theme| container::Style {
+            background: Some(iced::Background::Color(iced::Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 0.55,
+            })),
+            ..Default::default()
+        });
+
+        stack![main_stack, overlay].into()
+    }
+}
