@@ -70,6 +70,12 @@ impl DataModalState {
             None => String::new(),
         };
     }
+
+    pub fn get_vals_sorted_by_date(&self) -> Vec<f64> {
+        let mut sorted_vec: Vec<(&chrono::NaiveDate, &f64)> = self.data.iter().collect();
+        sorted_vec.sort_by_key(|&k| k.0);
+        sorted_vec.iter().map(|&(_, &val)| val).collect()
+    }
 }
 
 impl Default for DataModalState {

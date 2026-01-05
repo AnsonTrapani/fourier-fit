@@ -45,7 +45,7 @@ struct Gui {
 
 impl Gui {
     fn default() -> Self {
-        let app = App::new();
+        let mut app = App::new();
         let file = weight_file().unwrap_or(DEFAULT_FILENAME.into());
         let modal_state = data_modal::DataModalState::new(if create_file_perhaps(&file).is_ok() {
             Some(file)
@@ -57,6 +57,7 @@ impl Gui {
         } else {
             None
         };
+        app.set_app_data(modal_state.get_vals_sorted_by_date());
 
         Self {
             app,
@@ -90,7 +91,7 @@ impl Gui {
             Message::AttenuationChanged(s) => self.attenuation_s = s,
 
             Message::LoadDemo => {
-                self.app.set_demo_data();
+                self.app.set_app_data(demo_data());
                 self.error = None;
             }
 
@@ -189,7 +190,13 @@ impl Gui {
             }
             Message::WeightSelectionChanged(s) => self.modal_state.weight_entry = s,
             Message::OpenDataModal => self.modal_state.show_modal = true,
-            Message::CloseDataModal => self.modal_state.show_modal = false,
+            Message::CloseDataModal => {
+                self.modal_state.show_modal = false;
+                let sorted = self.modal_state.get_vals_sorted_by_date();
+                self.error = Some(format!("Total data points: {}", sorted.len()));
+                self.app
+                    .set_app_data(sorted);
+            }
             Message::UpdateDate(d) => match logic::iced_date_to_local_datetime(d) {
                 Ok(date) => self.modal_state.switch_date_state(date),
                 Err(e) => self.modal_state.date_status = e,
@@ -289,6 +296,11 @@ impl Gui {
                 } else {
                     None
                 }),
+                button("Demo Data").on_press_maybe(if !self.modal_state.show_modal {
+                    Some(Message::LoadDemo)
+                } else {
+                    None
+                })
             ]
             .spacing(12),
             if let Some(err) = &self.error {

@@ -117,17 +117,8 @@ impl App {
         self.attenuation = v;
     }
 
-    pub fn set_demo_data(&mut self) {
-        // 512 samples of a noisy sine
-        let n = 512;
-        self.raw_data = Some(
-            (0..n)
-                .map(|i| {
-                    let t = i as f64 / n as f64;
-                    (2.0 * std::f64::consts::PI * 5.0 * t).sin() + 0.15 * (2.0 * t).sin()
-                })
-                .collect(),
-        );
+    pub fn set_app_data(&mut self, data: Vec<f64>) {
+        self.raw_data = Some(data);
     }
 
     pub fn fft_filtered(&mut self) -> Result<(), String> {
@@ -222,4 +213,15 @@ fn is_file_empty(file_path: &std::path::Path) -> bool {
         Ok(metadata) => metadata.len() == 0,
         Err(_) => false,
     }
+}
+
+pub fn demo_data() -> Vec<f64> {
+    // 512 samples of a noisy sine
+    let n = 512;
+    (0..n)
+        .map(|i| {
+            let t = i as f64 / n as f64;
+            (2.0 * std::f64::consts::PI * 5.0 * t).sin() + 0.15 * (2.0 * t).sin()
+        })
+        .collect()
 }
