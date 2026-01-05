@@ -33,7 +33,7 @@ struct Gui {
     attenuation_s: String,
 
     // Output
-    error: Option<String>,
+    status: String,
     zeros_out: String,
     poles_out: String,
     plot_cache: Cache,
@@ -53,9 +53,9 @@ impl Gui {
             None
         });
         let error = if modal_state.file.is_none() {
-            Some(modal_state.date_status.clone())
+            modal_state.date_status.clone()
         } else {
-            None
+            String::new()
         };
         app.set_app_data(modal_state.get_vals_sorted_by_date());
 
@@ -66,7 +66,7 @@ impl Gui {
             order_s: "".into(),
             ripple_s: "".into(),
             attenuation_s: "".into(),
-            error,
+            status: error,
             zeros_out: String::new(),
             poles_out: String::new(),
             plot_cache: Cache::new(),
@@ -92,11 +92,11 @@ impl Gui {
 
             Message::LoadDemo => {
                 self.app.set_app_data(demo_data());
-                self.error = None;
+                self.status = String::from("Loaded demo data");
             }
 
             Message::ClearOutput => {
-                self.error = None;
+                self.status.replace_range(.., "");
                 self.zeros_out.clear();
                 self.poles_out.clear();
                 self.plot_cache.clear();
@@ -107,40 +107,40 @@ impl Gui {
             }
 
             Message::Calculate => {
-                self.error = None;
+                self.status.replace_range(.., "");
 
                 // Parse inputs
                 let cutoff = match self.cutoff_s.trim().parse::<f64>() {
                     Ok(v) => match math::cutoff_period_to_nyquist(v) {
                         Ok(w) => w,
                         Err(e) => {
-                            self.error = Some(e);
+                            self.status = format!("Error: {e}");
                             return;
                         }
                     },
                     Err(e) => {
-                        self.error = Some(format!("cutoff parse error: {e}"));
+                        self.status = format!("cutoff parse error: {e}");
                         return;
                     }
                 };
                 let order = match self.order_s.trim().parse::<usize>() {
                     Ok(v) => v,
                     Err(e) => {
-                        self.error = Some(format!("order parse error: {e}"));
+                        self.status = format!("order parse error: {e}");
                         return;
                     }
                 };
                 let ripple = match self.ripple_s.trim().parse::<f64>() {
                     Ok(v) => v,
                     Err(e) => {
-                        self.error = Some(format!("ripple parse error: {e}"));
+                        self.status = format!("ripple parse error: {e}");
                         return;
                     }
                 };
                 let attenuation = match self.attenuation_s.trim().parse::<f64>() {
                     Ok(v) => v,
                     Err(e) => {
-                        self.error = Some(format!("attenuation parse error: {e}"));
+                        self.status = format!("attenuation parse error: {e}");
                         return;
                     }
                 };
@@ -152,15 +152,15 @@ impl Gui {
 
                 // Run computation
                 if let Err(e) = self.app.filter() {
-                    self.error = Some(e);
+                    self.status = format!("Error: {e}");
                     return;
                 }
                 if let Err(e) = self.app.fft_filtered() {
-                    self.error = Some(e);
+                    self.status = format!("Error: {e}");
                     return;
                 }
                 if let Err(e) = self.app.generate_bode() {
-                    self.error = Some(e);
+                    self.status = format!("Error: {e}");
                     return;
                 }
 
@@ -193,7 +193,7 @@ impl Gui {
             Message::CloseDataModal => {
                 self.modal_state.show_modal = false;
                 let sorted = self.modal_state.get_vals_sorted_by_date();
-                self.error = Some(format!("Total data points: {}", sorted.len()));
+                self.status = format!("Total data points: {}", sorted.len());
                 self.app
                     .set_app_data(sorted);
             }
@@ -303,11 +303,7 @@ impl Gui {
                 })
             ]
             .spacing(12),
-            if let Some(err) = &self.error {
-                text(format!("Error: {err}"))
-            } else {
-                text("")
-            }
+            text(&self.status)
         ]
         .spacing(14);
 
