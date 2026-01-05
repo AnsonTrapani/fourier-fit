@@ -183,13 +183,13 @@ pub fn rfft_mag(data: &[f64]) -> Result<Vec<f64>, String> {
     Ok(output.into_iter().map(|x| x.norm()).collect())
 }
 
-/// c in ascending order: c[0] + c[1] w + ... + c[n] w^n
+// c in ascending order
 pub fn poly_roots_ascending_real(c_in: &[f64]) -> Result<Vec<Complex<f64>>, String> {
     if c_in.is_empty() {
         return Err("Empty polynomial".into());
     }
 
-    // trim trailing zeros (highest degree)
+    // trim trailing zeros
     let deg = match c_in.iter().rposition(|&x| x != 0.0) {
         Some(d) => d,
         None => return Err("Zero polynomial".into()),
@@ -204,15 +204,12 @@ pub fn poly_roots_ascending_real(c_in: &[f64]) -> Result<Vec<Complex<f64>>, Stri
         *x /= lead; // monic
     }
 
-    // Companion for w^deg + a_{deg-1} w^{deg-1} + ... + a0
     let mut m = Array2::<Complex<f64>>::zeros((deg, deg));
 
-    // first row = [-a_{deg-1}, ..., -a0]
     for j in 0..deg {
         let a = c[deg - 1 - j];
         m[(0, j)] = Complex::new(-a, 0.0);
     }
-    // subdiagonal ones
     for i in 1..deg {
         m[(i, i - 1)] = Complex::new(1.0, 0.0);
     }
@@ -221,17 +218,12 @@ pub fn poly_roots_ascending_real(c_in: &[f64]) -> Result<Vec<Complex<f64>>, Stri
     Ok(eig.to_vec())
 }
 
-/// Given filter coeffs in z^-1 form (b0..bN, a0..aM),
-/// return (zeros_z, poles_z) in the z-plane.
 pub fn iir_zeros_poles_z(b: &[f64], a: &[f64]) -> Result<PzTuple, String> {
-    // Roots in w = z^-1:
     let zeros_w = poly_roots_ascending_real(b)?;
     let poles_w = poly_roots_ascending_real(a)?;
 
-    // Convert to z = 1/w (handle w ~ 0 => z at infinity)
     let inv = |w: Complex<f64>| {
         if w.norm() == 0.0 {
-            // root at w=0 => z = infinity; represent however you want
             Complex::new(f64::INFINITY, f64::INFINITY)
         } else {
             Complex::new(1.0, 0.0) / w
@@ -243,14 +235,9 @@ pub fn iir_zeros_poles_z(b: &[f64], a: &[f64]) -> Result<PzTuple, String> {
     Ok((zeros_z, poles_z))
 }
 
-/// Compute log-spaced digital Bode magnitude (linear magnitude) for an IIR/FIR defined by b,a.
-/// - `fs` is samples per unit-time (e.g. fs=1.0 => 1 sample/day => x-axis in cycles/day)
-/// - returns (freqs, mags) where freqs are in cycles per unit-time, mags are |H(e^{jω})|
 pub fn bode_mag_logspace(b: &[f64], a: &[f64], fs: f64, n_points: usize) -> (Vec<f64>, Vec<f64>) {
     let n_points = n_points.max(16);
 
-    // log-x can’t include 0, so pick a small >0 lower bound.
-    // For fs=1, this is 1e-4 cycles/day by default.
     let f_min = (fs * 1e-4).max(1e-9);
     let f_max = (fs * 0.5).max(f_min * 10.0);
 
@@ -265,27 +252,21 @@ pub fn bode_mag_logspace(b: &[f64], a: &[f64], fs: f64, n_points: usize) -> (Vec
         let f = (log_fmin + t * (log_fmax - log_fmin)).exp();
         let omega = 2.0 * std::f64::consts::PI * (f / fs); // rad/sample
 
-        // z^{-k} = e^{-j ω k}. Let c = cos(ω), s = sin(ω).
-        // Evaluate numerator and denominator as complex sums.
         let (c, s) = (omega.cos(), omega.sin());
 
-        // running e^{-j ω k} via recurrence:
-        // e^{-j ω (k+1)} = e^{-j ω k} * e^{-j ω}
-        let (mut zr, mut zi) = (1.0_f64, 0.0_f64); // e^{-j ω * 0}
+        let (mut zr, mut zi) = (1.0_f64, 0.0_f64);
 
         let mut num_r = 0.0_f64;
         let mut num_i = 0.0_f64;
         for &bk in b {
             num_r += bk * zr;
             num_i += bk * zi;
-            // multiply (zr + jzi) by (c - js): (zr*c + zi*s) + j(zi*c - zr*s)
             let new_zr = zr * c + zi * s;
             let new_zi = zi * c - zr * s;
             zr = new_zr;
             zi = new_zi;
         }
 
-        // reset recurrence for denominator
         let (mut zr, mut zi) = (1.0_f64, 0.0_f64);
         let mut den_r = 0.0_f64;
         let mut den_i = 0.0_f64;
