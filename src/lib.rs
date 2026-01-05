@@ -67,19 +67,21 @@ impl App {
             None => return Err(String::from("No data set")),
         };
         self.filtered_data = match self.filter {
-            structures::filters::FilterType::BUTTERWORTH => Some(butterworth_filter(data, self.cutoff_freq, self.order)?),
-            structures::filters::FilterType::CHEBYSHEV1 => {
-                match chebyshev_filter_1(data, self.cutoff_freq, self.order, self.ripple) {
-                    Ok(f) => Some(f),
-                    Err(e) => return Err(e),
-                }
+            structures::filters::FilterType::BUTTERWORTH => {
+                Some(butterworth_filter(data, self.cutoff_freq, self.order)?)
             }
-            structures::filters::FilterType::CHEBYSHEV2 => {
-                match chebyshev_filter_2(data, self.cutoff_freq, self.order, self.attenuation) {
-                    Ok(f) => Some(f),
-                    Err(e) => return Err(e),
-                }
-            }
+            structures::filters::FilterType::CHEBYSHEV1 => Some(chebyshev_filter_1(
+                data,
+                self.cutoff_freq,
+                self.order,
+                self.ripple,
+            )?),
+            structures::filters::FilterType::CHEBYSHEV2 => Some(chebyshev_filter_2(
+                data,
+                self.cutoff_freq,
+                self.order,
+                self.attenuation,
+            )?),
         };
         (self.zeros, self.poles) = match math::iir_zeros_poles_z(
             self.filtered_data.as_ref().unwrap().b.as_slice(),

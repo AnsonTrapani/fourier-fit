@@ -194,8 +194,7 @@ impl Gui {
                 self.modal_state.show_modal = false;
                 let sorted = self.modal_state.get_vals_sorted_by_date();
                 self.status = format!("Total data points: {}", sorted.len());
-                self.app
-                    .set_app_data(sorted);
+                self.app.set_app_data(sorted);
             }
             Message::UpdateDate(d) => match logic::iced_date_to_local_datetime(d) {
                 Ok(date) => self.modal_state.switch_date_state(date),

@@ -1,3 +1,4 @@
+use core::cmp::min;
 use ndarray::Array2;
 use ndarray_linalg::EigVals;
 use num_complex::Complex;
@@ -10,7 +11,6 @@ use sci_rs::signal::filter::{
 };
 use scirs2::fft::rfft;
 use scirs2::signal::filter;
-use core::cmp::min;
 
 type PzTuple = (Vec<Complex<f64>>, Vec<Complex<f64>>);
 
@@ -45,7 +45,11 @@ pub fn butterworth_filter(
     let sos = butterworth_sos(order, vec![cutoff_freq], FilterBandType::Lowpass)?;
     let min_cnt = min_len_for_sosfiltfilt(&sos);
     if data.len() < min_cnt {
-        return Err(format!("Requires {} points for filtering. Got {}", min_cnt, data.len()));
+        return Err(format!(
+            "Requires {} points for filtering. Got {}",
+            min_cnt,
+            data.len()
+        ));
     }
     let filtered = sosfiltfilt_dyn(data.iter().copied(), &sos);
     Ok(FilterData {
@@ -296,7 +300,11 @@ pub fn bode_mag_logspace(b: &[f64], a: &[f64], fs: f64, n_points: usize) -> (Vec
     (freqs, mags)
 }
 
-fn min_len_for_sosfiltfilt<F: Copy + PartialEq + rustfft::num_traits::Zero + sci_rs::na::RealField>(sos: &[Sos<F>]) -> usize {
+fn min_len_for_sosfiltfilt<
+    F: Copy + PartialEq + rustfft::num_traits::Zero + sci_rs::na::RealField,
+>(
+    sos: &[Sos<F>],
+) -> usize {
     let n = sos.len();
     let mut ntaps = 2 * n + 1;
 
