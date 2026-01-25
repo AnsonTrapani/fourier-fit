@@ -2,8 +2,7 @@ name: build-test
 
 on:
   pull_request:
-    branches:
-        - main
+    branches: [main]
 
 jobs:
   build:
@@ -11,19 +10,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux (supported distros)
+          # Linux
           - runs_on: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
           - runs_on: ubuntu-22.04-arm
             target: aarch64-unknown-linux-gnu
 
-          # Windows
+          # Windows x64
           - runs_on: windows-latest
             target: x86_64-pc-windows-msvc
+            vcpkg_triplet: x64-windows-static-md
+
+          # Windows ARM64
           - runs_on: windows-11-arm
             target: aarch64-pc-windows-msvc
+            vcpkg_triplet: arm64-windows-static-md
 
-          # NOTE: macos-14 is arm64-only; pick an intel label that exists for x86_64.
+          # macOS (arm64)
           - runs_on: macos-latest
             target: aarch64-apple-darwin
 
@@ -31,9 +34,33 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
       - uses: Swatinem/rust-cache@v2
+
+      # vcpkg is only needed on Windows (for OpenBLAS)
+      - name: Setup vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: '**/vcpkg.json'
+
+      - name: Install OpenBLAS (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $triplet = "${{ matrix.vcpkg_triplet }}"
+          if ([string]::IsNullOrWhiteSpace($triplet)) {
+            throw "No vcpkg_triplet set for this Windows matrix entry."
+          }
+
+          vcpkg install openblas --triplet $triplet
+
+          "VCPKG_DEFAULT_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "OPENBLAS_DIR=$env:VCPKG_INSTALLATION_ROOT\installed\$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - run: cargo build --locked --release --target ${{ matrix.target }}

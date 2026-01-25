@@ -1402,6 +1402,7 @@ dependencies = [
  "ndarray 0.17.1",
  "ndarray-linalg 0.18.0",
  "num-complex",
+ "openblas-src",
  "rustfft",
  "sci-rs",
  "scirs2",
