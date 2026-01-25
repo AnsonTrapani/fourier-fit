@@ -41,13 +41,6 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      # vcpkg is only needed on Windows (for OpenBLAS)
-      - name: Setup vcpkg (Windows)
-        if: runner.os == 'Windows'
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgJsonGlob: '**/vcpkg.json'
-
       - name: Install OpenBLAS (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -56,11 +49,13 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($triplet)) {
             throw "No vcpkg_triplet set for this Windows matrix entry."
           }
-
-          vcpkg install openblas --triplet $triplet
-
           "VCPKG_DEFAULT_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "OPENBLAS_DIR=$env:VCPKG_INSTALLATION_ROOT\installed\$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # vcpkg is only needed on Windows (for OpenBLAS)
+      - name: Setup vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: '**/vcpkg.json'
 
       - run: cargo build --locked --release --target ${{ matrix.target }}
