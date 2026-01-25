@@ -201,8 +201,9 @@ impl Gui {
                 Err(e) => self.modal_state.date_status = e,
             },
             Message::SaveWeightSelection => {
-                if let Err(e) = self.modal_state.log_weight_change() {
-                    self.modal_state.date_status = e;
+                self.modal_state.date_status = match self.modal_state.log_weight_change() {
+                    Ok(s) => s,
+                    Err(e) => e,
                 }
             }
             Message::NoOp => {}
