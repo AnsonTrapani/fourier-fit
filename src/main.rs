@@ -52,10 +52,9 @@ impl Gui {
         } else {
             None
         });
-        let error = if modal_state.file.is_none() {
-            modal_state.date_status.clone()
-        } else {
-            String::new()
+        let error = match modal_state.file.as_deref() {
+            Some(p) => format!("Config location: {}", p.to_string_lossy()),
+            None => modal_state.date_status.clone(),
         };
         app.set_app_data(modal_state.get_vals_sorted_by_date());
 
