@@ -69,11 +69,19 @@ jobs:
         run: |
           $triplet = "${{ matrix.vcpkg_triplet }}"
           $vcpkgRoot = "${{ github.workspace }}\vcpkg"
+          $installedRoot = Join-Path $vcpkgRoot "installed"
 
-          # This is the “database” Rust vcpkg crate expects
-          if (!(Test-Path "$vcpkgRoot\installed\vcpkg\status")) {
-            dir "$vcpkgRoot\installed" -Depth 3 | Out-Host
-            throw "Missing vcpkg status DB at $vcpkgRoot\installed\vcpkg\status"
+          # Re-export (so the next steps / cargo see it)
+          "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VCPKG_DEFAULT_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VCPKG_INSTALLED_DIR=$installedRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          # The DB Cargo's vcpkg crate reads
+          if (!(Test-Path "$installedRoot\vcpkg\status")) {
+            dir "$installedRoot" -Depth 3 | Out-Host
+            throw "Missing vcpkg status DB at $installedRoot\vcpkg\status"
           }
 
-          & "$vcpkgRoot\vcpkg.exe" list --triplet $triplet | Out-Host
+          # Prove openblas is actually recorded as installed
+          Select-String -Path "$installedRoot\vcpkg\status" -Pattern "Package: openblas" -Quiet `
+            || (throw "openblas not found in vcpkg status DB")
