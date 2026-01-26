@@ -94,10 +94,19 @@ jobs:
           $lib = "${{ github.workspace }}\vcpkg\installed\$t\lib"
           Copy-Item "$lib\openblas.lib" "$lib\blas.lib"   -Force
           Copy-Item "$lib\openblas.lib" "$lib\lapack.lib" -Force
+          Test-Path "$lib\blas.lib" | Out-Host
+          Test-Path "$lib\lapack.lib" | Out-Host
 
       - name: Build windows
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          VCPKG_ROOT: ${{ github.workspace }}\vcpkg
+          VCPKG_INSTALLED_DIR: ${{ github.workspace }}\vcpkg\installed
+          VCPKG_DEFAULT_TRIPLET: ${{ matrix.vcpkg_triplet }}
+          VCPKG_TARGET_TRIPLET:  ${{ matrix.vcpkg_triplet }}
+          VCPKGRS_TRIPLET:       ${{ matrix.vcpkg_triplet }}
+          VCPKGRS_DYNAMIC: "1"
         run: |
           # Re-export (so the next steps / cargo see it)
           "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
@@ -105,7 +114,7 @@ jobs:
           "VCPKG_INSTALLED_DIR=$installedRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
           # Build
-          cargo build --locked --release --target ${{ matrix.target }}
+          cargo build --locked --release --target ${{ matrix.target }} -vv
 
       - name: Build
         if: runner.os != 'Windows'
