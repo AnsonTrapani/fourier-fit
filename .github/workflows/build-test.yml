@@ -41,21 +41,38 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Install OpenBLAS (Windows)
+      - name: Configure vcpkg triplets (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $triplet = "${{ matrix.vcpkg_triplet }}"
-          if ([string]::IsNullOrWhiteSpace($triplet)) {
-            throw "No vcpkg_triplet set for this Windows matrix entry."
-          }
+          if ([string]::IsNullOrWhiteSpace($triplet)) { throw "No vcpkg_triplet set." }
           "VCPKG_DEFAULT_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VCPKG_DEFAULT_HOST_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      # vcpkg is only needed on Windows (for OpenBLAS)
-      - name: Setup vcpkg (Windows)
+      - name: Setup + install vcpkg deps (Windows)
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: '**/vcpkg.json'
+          runVcpkgInstall: true
+
+      - name: Export vcpkg env for Rust (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not $env:VCPKG_INSTALLATION_ROOT) { throw "VCPKG_INSTALLATION_ROOT not set." }
+          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Verify vcpkg OpenBLAS installed (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $triplet = "${{ matrix.vcpkg_triplet }}"
+          $root = $env:VCPKG_ROOT
+          Write-Host "VCPKG_ROOT=$root"
+          Write-Host "Triplet=$triplet"
+          dir "$root\installed\$triplet\lib" | findstr /I "openblas"
+          dir "$root\installed\vcpkg\status"
 
       - run: cargo build --locked --release --target ${{ matrix.target }}
