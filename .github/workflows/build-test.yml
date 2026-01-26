@@ -47,13 +47,12 @@ jobs:
         run: |
           $triplet = "${{ matrix.vcpkg_triplet }}"
           if ([string]::IsNullOrWhiteSpace($triplet)) { throw "No vcpkg_triplet set." }
-
           $vcpkgRoot = "${{ github.workspace }}\vcpkg"
-
+          $installedRoot = Join-Path $vcpkgRoot "installed"
           "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
           "VCPKG_DEFAULT_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "OPENBLAS_NO_PKG_CONFIG=1" | Out-File -FilePath $env:GITHUB_ENV -Append
-
+          # IMPORTANT: use a workspace-level installed root (manifest-friendly)
+          "VCPKG_INSTALLED_DIR=$installedRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
       - name: Setup vcpkg + install deps (Windows)
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
@@ -62,30 +61,26 @@ jobs:
           runVcpkgInstall: true
           vcpkgDirectory: ${{ github.workspace }}\vcpkg
 
-      - name: Verify vcpkg has openblas (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $triplet = "${{ matrix.vcpkg_triplet }}"
-          $vcpkgRoot = "${{ github.workspace }}\vcpkg"
-          & "$vcpkgRoot\vcpkg.exe" list --triplet $triplet | Out-Host
-
       - name: Export OpenBLAS prefix (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $triplet = "${{ matrix.vcpkg_triplet }}"
-          $vcpkgRoot = $env:VCPKG_ROOT
-          $prefix = Join-Path (Join-Path $vcpkgRoot "installed") $triplet
-
+          $installedRoot = $env:VCPKG_INSTALLED_DIR
+          if ([string]::IsNullOrWhiteSpace($installedRoot)) {
+            $installedRoot = "${{ github.workspace }}\vcpkg_installed"
+          }
+          $prefix = Join-Path $installedRoot $triplet
           "OPENBLAS_DIR=$prefix"  | Out-File -FilePath $env:GITHUB_ENV -Append
           "OPENBLAS_ROOT=$prefix" | Out-File -FilePath $env:GITHUB_ENV -Append
-
+          # Sanity check that's robust (don't assume lib exists)
           if (!(Test-Path "$prefix\share\openblas")) {
             Write-Host "Prefix=$prefix"
-            if (Test-Path $vcpkgRoot) { dir $vcpkgRoot -Depth 3 | Out-Host }
+            Write-Host "InstalledRoot=$installedRoot"
+            if (Test-Path $installedRoot) { dir $installedRoot -Depth 2 | Out-Host }
             throw "Expected OpenBLAS to be installed under $prefix"
           }
-
+          & "${{ github.workspace }}\vcpkg\vcpkg.exe" list --triplet "${{ matrix.vcpkg_triplet }}"
+          Test-Path "${{ github.workspace }}\vcpkg\installed\vcpkg\status"
       - name: Build
         run: cargo build --locked --release --target ${{ matrix.target }}
