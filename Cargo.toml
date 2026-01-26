@@ -26,9 +26,8 @@ ndarray-linalg = { version = "0.18.0", default-features = false, features = [
     "openblas-static",
 ] }
 
-# Windows: static OpenBLAS
+# Windows: static MKL
 [target.'cfg(target_os = "windows")'.dependencies]
 ndarray-linalg = { version = "0.18.0", default-features = false, features = [
-    "openblas-system",
+    "intel-mkl-static",
 ] }
-openblas-src = { version = "0.10", features = ["system"] }
