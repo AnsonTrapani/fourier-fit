@@ -85,3 +85,13 @@ jobs:
           # Prove openblas is actually recorded as installed
           Select-String -Path "$installedRoot\vcpkg\status" -Pattern "Package: openblas" -Quiet `
             || (throw "openblas not found in vcpkg status DB")
+
+      - name: Build
+        run: |
+          # Re-export (so the next steps / cargo see it)
+          "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VCPKG_DEFAULT_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "VCPKG_INSTALLED_DIR=$installedRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          # Build
+          cargo build --locked --release --target ${{ matrix.target }}
