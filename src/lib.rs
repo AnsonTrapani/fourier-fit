@@ -2,6 +2,7 @@ pub mod logic;
 pub mod math;
 pub mod structures;
 pub mod views;
+use directories::ProjectDirs;
 use std::{io, path::PathBuf};
 
 use iced::Color;
@@ -14,16 +15,6 @@ const DEFAULT_ORDER: usize = 4;
 const DEFAULT_RIPPLE: f64 = 5.;
 const DEFAULT_ATTENUATION: f64 = 40.;
 pub const DEFAULT_FILENAME: &str = "fourier_fit_data.json";
-#[cfg(target_os = "windows")]
-const CONFIG_DIR_PREFIX: &str = "C:\\Users";
-#[cfg(target_os = "linux")]
-const CONFIG_DIR_PREFIX: &str = "/home";
-#[cfg(target_os = "macos")]
-const CONFIG_DIR_PREFIX: &str = "/Users";
-#[cfg(target_os = "windows")]
-const CONFIG_DIR_SUFIX: &str = "AppData\\Roaming";
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-const CONFIG_DIR_SUFFIX: &str = ".config";
 
 #[derive(Default)]
 pub struct App {
@@ -185,13 +176,9 @@ pub fn glow_purple() -> Color {
 } // accent
 
 pub fn weight_file() -> Result<PathBuf, String> {
-    if let Some(username) = users::get_current_username() {
-        return Ok(PathBuf::from(CONFIG_DIR_PREFIX)
-            .join(username)
-            .join(CONFIG_DIR_SUFFIX)
-            .join(DEFAULT_FILENAME));
-    }
-    Err("Could not get username of current user".into())
+    let proj = ProjectDirs::from("", "", "fourier-fit")
+        .ok_or("Could not determine config directory".to_string())?;
+    Ok(proj.config_dir().join(DEFAULT_FILENAME))
 }
 
 pub fn create_file_perhaps(file_path: &std::path::PathBuf) -> io::Result<()> {
