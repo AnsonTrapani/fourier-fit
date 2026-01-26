@@ -57,22 +57,32 @@ jobs:
           vcpkgJsonGlob: '**/vcpkg.json'
           runVcpkgInstall: true
 
-      - name: Export vcpkg env for Rust (Windows)
+      - name: Export vcpkg root for Rust (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          if (-not $env:VCPKG_INSTALLATION_ROOT) { throw "VCPKG_INSTALLATION_ROOT not set." }
-          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+          if (-not $env:RUNVCPKG_VCPKG_ROOT) { throw "RUNVCPKG_VCPKG_ROOT not set (run-vcpkg failed?)" }
+          "VCPKG_ROOT=$env:RUNVCPKG_VCPKG_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Verify vcpkg OpenBLAS installed (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $triplet = "${{ matrix.vcpkg_triplet }}"
-          $root = $env:VCPKG_ROOT
-          Write-Host "VCPKG_ROOT=$root"
+          Write-Host "RUNVCPKG_VCPKG_ROOT=$env:RUNVCPKG_VCPKG_ROOT"
+          Write-Host "VCPKG_ROOT=$env:VCPKG_ROOT"
+          Write-Host "VCPKG_INSTALLED_DIR=$env:VCPKG_INSTALLED_DIR"
           Write-Host "Triplet=$triplet"
-          dir "$root\installed\$triplet\lib" | findstr /I "openblas"
-          dir "$root\installed\vcpkg\status"
+
+          if (-not $env:VCPKG_INSTALLED_DIR) {
+            throw "VCPKG_INSTALLED_DIR not set by run-vcpkg."
+          }
+
+          $libdir = Join-Path $env:VCPKG_INSTALLED_DIR "$triplet\lib"
+          if (-not (Test-Path $libdir)) {
+            throw "Expected lib dir missing: $libdir"
+          }
+
+          dir $libdir | findstr /I "openblas"
 
       - run: cargo build --locked --release --target ${{ matrix.target }}
