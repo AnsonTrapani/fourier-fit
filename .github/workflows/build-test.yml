@@ -50,39 +50,28 @@ jobs:
           "VCPKG_DEFAULT_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
           "VCPKG_DEFAULT_HOST_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Setup + install vcpkg deps (Windows)
+      - name: Setup vcpkg (Windows)
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgJsonGlob: '**/vcpkg.json'
-          runVcpkgInstall: true
+          runVcpkgInstall: false
+          vcpkgDirectory: ${{ github.workspace }}\vcpkg
 
-      - name: Export vcpkg root for Rust (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          if (-not $env:RUNVCPKG_VCPKG_ROOT) { throw "RUNVCPKG_VCPKG_ROOT not set (run-vcpkg failed?)" }
-          "VCPKG_ROOT=$env:RUNVCPKG_VCPKG_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Verify vcpkg OpenBLAS installed (Windows)
+      - name: Install OpenBLAS into vcpkg\installed (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $triplet = "${{ matrix.vcpkg_triplet }}"
-          Write-Host "RUNVCPKG_VCPKG_ROOT=$env:RUNVCPKG_VCPKG_ROOT"
-          Write-Host "VCPKG_ROOT=$env:VCPKG_ROOT"
-          Write-Host "VCPKG_INSTALLED_DIR=$env:VCPKG_INSTALLED_DIR"
-          Write-Host "Triplet=$triplet"
+          $vcpkgRoot = "${{ github.workspace }}\vcpkg"
+          "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-          if (-not $env:VCPKG_INSTALLED_DIR) {
-            throw "VCPKG_INSTALLED_DIR not set by run-vcpkg."
-          }
+          & "$vcpkgRoot\vcpkg.exe" install openblas --triplet $triplet
 
-          $libdir = Join-Path $env:VCPKG_INSTALLED_DIR "$triplet\lib"
-          if (-not (Test-Path $libdir)) {
-            throw "Expected lib dir missing: $libdir"
-          }
+          # Optional, but helps some build scripts:
+          "OPENBLAS_DIR=$vcpkgRoot\installed\$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-          dir $libdir | findstr /I "openblas"
+          Write-Host "Installed openblas here:"
+          dir "$vcpkgRoot\installed\$triplet\lib" | findstr /I "openblas"
 
       - run: cargo build --locked --release --target ${{ matrix.target }}
