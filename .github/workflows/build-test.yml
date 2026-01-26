@@ -49,13 +49,10 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($triplet)) { throw "No vcpkg_triplet set." }
 
           $vcpkgRoot = "${{ github.workspace }}\vcpkg"
-          $installedRoot = "${{ github.workspace }}\vcpkg_installed"
 
           "VCPKG_ROOT=$vcpkgRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
           "VCPKG_DEFAULT_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-          # IMPORTANT: use a workspace-level installed root (manifest-friendly)
-          "VCPKG_INSTALLED_DIR=$installedRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "OPENBLAS_NO_PKG_CONFIG=1" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Setup vcpkg + install deps (Windows)
         if: runner.os == 'Windows'
@@ -65,26 +62,28 @@ jobs:
           runVcpkgInstall: true
           vcpkgDirectory: ${{ github.workspace }}\vcpkg
 
+      - name: Verify vcpkg has openblas (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $triplet = "${{ matrix.vcpkg_triplet }}"
+          $vcpkgRoot = "${{ github.workspace }}\vcpkg"
+          & "$vcpkgRoot\vcpkg.exe" list --triplet $triplet | Out-Host
+
       - name: Export OpenBLAS prefix (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $triplet = "${{ matrix.vcpkg_triplet }}"
-          $installedRoot = $env:VCPKG_INSTALLED_DIR
-          if ([string]::IsNullOrWhiteSpace($installedRoot)) {
-            $installedRoot = "${{ github.workspace }}\vcpkg_installed"
-          }
-
-          $prefix = Join-Path $installedRoot $triplet
+          $vcpkgRoot = $env:VCPKG_ROOT
+          $prefix = Join-Path (Join-Path $vcpkgRoot "installed") $triplet
 
           "OPENBLAS_DIR=$prefix"  | Out-File -FilePath $env:GITHUB_ENV -Append
           "OPENBLAS_ROOT=$prefix" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-          # Sanity check that's robust (don't assume lib exists)
           if (!(Test-Path "$prefix\share\openblas")) {
             Write-Host "Prefix=$prefix"
-            Write-Host "InstalledRoot=$installedRoot"
-            if (Test-Path $installedRoot) { dir $installedRoot -Depth 2 | Out-Host }
+            if (Test-Path $vcpkgRoot) { dir $vcpkgRoot -Depth 3 | Out-Host }
             throw "Expected OpenBLAS to be installed under $prefix"
           }
 
