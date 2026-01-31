@@ -315,13 +315,13 @@ impl Gui {
         .height(Length::FillPortion(1));
 
         let filter_tf_bode = Canvas::new(views::bode::BodeView {
-            freqs: if self.app.bode_plot.is_some() {
-                Some(&self.app.bode_plot.as_ref().unwrap().0)
+            freqs: if let Some(f) = self.app.bode_plot.as_ref() {
+                Some(&f.0)
             } else {
                 None
             },
-            mag_db: if self.app.bode_plot.is_some() {
-                Some(&self.app.bode_plot.as_ref().unwrap().1)
+            mag_db: if let Some(m) = self.app.bode_plot.as_ref() {
+                Some(&m.1)
             } else {
                 None
             },
