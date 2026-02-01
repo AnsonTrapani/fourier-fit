@@ -13,7 +13,7 @@
     "SHELL": "/bin/bash"
   },
   "mounts": [
-    "source=${localEnv:HOME}/.ssh/id_ed25519_sign.pub,target=${localEnv:HOME}/.ssh/id_ed25519_sign.pub,type=bind,readonly"
+    "source=${localEnv:HOME}/.ssh/git_sign.pub,target=${localEnv:HOME}/.ssh/git_sign.pub,type=bind,readonly"
   ],
   "customizations": {
     "vscode": {

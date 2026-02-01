@@ -31,3 +31,4 @@ ndarray-linalg = { version = "0.18.0", default-features = false, features = [
 ndarray-linalg = { version = "0.18.0", default-features = false, features = [
     "intel-mkl-static",
 ] }
+intel-mkl-src = "0.8"

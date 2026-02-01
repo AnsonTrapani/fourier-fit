@@ -14,7 +14,7 @@ git config --global user.email "Your Email"
 Then, configure signing with the ssh signing key created in the prior step with the following commands.
 ```
 git config --global gpg.format ssh
-git config --global user.signingkey <path-to-signing-key>
+git config --global user.signingkey <path-to-public-signing-key>
 git config --global commit.gpgsign true
 ```
 Then, in `~/.bashrc`, append the following:
@@ -27,14 +27,14 @@ if [ -z "$SSH_AUTH_SOCK" ]; then
         ssh-agent -s &> $HOME/.ssh/ssh-agent
    fi
    eval `cat $HOME/.ssh/ssh-agent` > /dev/null
-   ssh-add <path-to-authentication-key> <path-to-signing-key> 2> /dev/null
+   ssh-add <path-to-private-authentication-key> <path-to-private-signing-key> 2> /dev/null
 fi
 ```
 However, since there are authentication and signing keys now, configure git to use the authentication key for authentication by opening `~/.ssh/config` in a text editor and adding:
 ```
 Host github.com
     User git
-    IdentityFile <path-to-authentication-key>
+    IdentityFile <path-to-private-authentication-key>
     IdentitiesOnly yes
 ```
 ### Configuring the ssh agent

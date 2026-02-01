@@ -1515,6 +1515,7 @@ dependencies = [
  "directories 6.0.0",
  "iced",
  "iced_aw",
+ "intel-mkl-src",
  "ndarray 0.17.1",
  "ndarray-linalg 0.18.0",
  "num-complex",
