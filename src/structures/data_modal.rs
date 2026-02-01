@@ -53,13 +53,13 @@ impl DataModalState {
         }
     }
 
-    pub fn log_weight_change(&mut self) -> Result<(), String> {
+    pub fn log_weight_change(&mut self) -> Result<String, String> {
         let entry = match self.weight_entry.parse::<f64>() {
             Ok(e) => e,
             Err(_) => return Err(format!("{} is not a number.", self.weight_entry)),
         };
         self.data.insert(self.selected_datetime, entry);
-        Ok(())
+        Ok(format!("Weight on {}: {}", self.selected_datetime, entry))
     }
 
     pub fn switch_date_state(&mut self, date_time: chrono::NaiveDate) {
