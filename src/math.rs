@@ -1,3 +1,5 @@
+#[cfg(target_os = "macos")]
+extern crate accelerate_src;
 use core::cmp::min;
 use ndarray::Array2;
 use ndarray_linalg::EigVals;
