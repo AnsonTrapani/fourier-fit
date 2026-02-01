@@ -28,7 +28,11 @@ ndarray-linalg = { version = "0.18.0", default-features = false, features = [
 
 # Windows: static MKL
 [target.'cfg(target_os = "windows")'.dependencies]
+blas-src = "0.14.0"
+lapack-src = "0.13.0"
 ndarray-linalg = { version = "0.18.0", default-features = false, features = [
     "intel-mkl-static",
 ] }
-intel-mkl-src = "0.8"
+# blas-src = { version = "0.10", features = ["intel-mkl"] }
+# lapack-src = { version = "0.10", features = ["intel-mkl"] }
+# intel-mkl-src = "0.8"

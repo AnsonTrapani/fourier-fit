@@ -457,6 +457,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "812e12b5285cc515a9c72a5c1d3b6d46a19dac5acfef5265968c166106e31dd3"
 
 [[package]]
+name = "blas-src"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5bd439b48f5425c9f4597141b52476358e05e08471bc30f4d1c2a1f4084d7c9f"
+
+[[package]]
 name = "block"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1511,11 +1517,12 @@ dependencies = [
 name = "fourier-fit"
 version = "0.1.0"
 dependencies = [
+ "blas-src",
  "chrono",
  "directories 6.0.0",
  "iced",
  "iced_aw",
- "intel-mkl-src",
+ "lapack-src",
  "ndarray 0.17.1",
  "ndarray-linalg 0.18.0",
  "num-complex",
@@ -2430,6 +2437,12 @@ dependencies = [
  "num-complex",
  "num-traits",
 ]
+
+[[package]]
+name = "lapack-src"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1bcb4a410d9e39126db6ef1b71814618d9f9c3db128e6db674a449cf6a8b668"
 
 [[package]]
 name = "lapack-sys"

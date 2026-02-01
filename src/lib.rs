@@ -1,3 +1,5 @@
+// #[cfg(target_os = "windows")]
+// extern crate intel_mkl_src;
 pub mod logic;
 pub mod math;
 pub mod structures;
