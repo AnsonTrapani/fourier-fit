@@ -52,10 +52,9 @@ impl Gui {
         } else {
             None
         });
-        let error = if modal_state.file.is_none() {
-            modal_state.date_status.clone()
-        } else {
-            String::new()
+        let error = match modal_state.file.as_deref() {
+            Some(p) => format!("Config location: {}", p.to_string_lossy()),
+            None => modal_state.date_status.clone(),
         };
         app.set_app_data(modal_state.get_vals_sorted_by_date());
 
@@ -201,8 +200,9 @@ impl Gui {
                 Err(e) => self.modal_state.date_status = e,
             },
             Message::SaveWeightSelection => {
-                if let Err(e) = self.modal_state.log_weight_change() {
-                    self.modal_state.date_status = e;
+                self.modal_state.date_status = match self.modal_state.log_weight_change() {
+                    Ok(s) => s,
+                    Err(e) => e,
                 }
             }
             Message::NoOp => {}
@@ -315,13 +315,13 @@ impl Gui {
         .height(Length::FillPortion(1));
 
         let filter_tf_bode = Canvas::new(views::bode::BodeView {
-            freqs: if self.app.bode_plot.is_some() {
-                Some(&self.app.bode_plot.as_ref().unwrap().0)
+            freqs: if let Some(f) = self.app.bode_plot.as_ref() {
+                Some(&f.0)
             } else {
                 None
             },
-            mag_db: if self.app.bode_plot.is_some() {
-                Some(&self.app.bode_plot.as_ref().unwrap().1)
+            mag_db: if let Some(m) = self.app.bode_plot.as_ref() {
+                Some(&m.1)
             } else {
                 None
             },

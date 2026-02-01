@@ -12,6 +12,9 @@
   "containerEnv": {
     "SHELL": "/bin/bash"
   },
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh/git_sign.pub,target=${localEnv:HOME}/.ssh/git_sign.pub,type=bind,readonly"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [

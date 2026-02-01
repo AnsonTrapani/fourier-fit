@@ -1,0 +1,81 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # required to create/upload release assets
+
+env:
+  BIN_NAME: ffit
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux
+          - runs_on: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            ext: ""
+          - runs_on: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            ext: ""
+
+          # Windows
+          - runs_on: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: ".exe"
+
+          # Furture support for Windows on arm
+          # - runs_on: windows-11-arm
+          #   target: aarch64-pc-windows-msvc
+          #   ext: ".exe"
+
+          # macOS (arm64)
+          - runs_on: macos-latest
+            target: aarch64-apple-darwin
+            ext: ""
+
+    runs-on: ${{ matrix.runs_on }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build (release)
+        run: cargo build --locked --release --target ${{ matrix.target }}
+
+      # Package artifact (zip on Windows, tar.gz elsewhere)
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        run: |
+          set -eux
+          mkdir -p dist
+          cp "target/${{ matrix.target }}/release/${BIN_NAME}${{ matrix.ext }}" "dist/"
+          tar -czf "${BIN_NAME}-${{ matrix.target }}.tar.gz" -C dist "${BIN_NAME}${{ matrix.ext }}"
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item "target\${{ matrix.target }}\release\${env:BIN_NAME}${{ matrix.ext }}" "dist\"
+          Compress-Archive -Path "dist\${env:BIN_NAME}${{ matrix.ext }}" -DestinationPath "${env:BIN_NAME}-${{ matrix.target }}.zip" -Force
+
+      # Upload packaged file to the GitHub Release for this tag
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.tar.gz
+            *.zip
