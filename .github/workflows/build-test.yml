@@ -19,12 +19,10 @@ jobs:
           # Windows x64
           - runs_on: windows-latest
             target: x86_64-pc-windows-msvc
-            vcpkg_triplet: x64-windows-static-md
 
           # Windows ARM64
           - runs_on: windows-11-arm
             target: aarch64-pc-windows-msvc
-            vcpkg_triplet: arm64-windows-static-md
 
           # macOS (arm64)
           - runs_on: macos-latest
@@ -44,4 +42,4 @@ jobs:
       - name: Build
         run: |
           # Build
-          cargo build --locked --release --target ${{ matrix.target }} -vv
+          cargo build --release --target ${{ matrix.target }}

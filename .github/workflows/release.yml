@@ -9,7 +9,7 @@ permissions:
   contents: write   # required to create/upload release assets
 
 env:
-  BIN_NAME: your_binary_name
+  BIN_NAME: ffit
 
 jobs:
   build:
@@ -51,7 +51,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build (release)
-        run: cargo build --locked --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
 
       # Package artifact (zip on Windows, tar.gz elsewhere)
       - name: Package (unix)
