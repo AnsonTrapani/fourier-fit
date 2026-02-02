@@ -49,7 +49,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
       - uses: Swatinem/rust-cache@v2
 
       - name: Build (release)
@@ -72,10 +71,32 @@ jobs:
           Copy-Item "target\${{ matrix.target }}\release\${env:BIN_NAME}${{ matrix.ext }}" "dist\"
           Compress-Archive -Path "dist\${env:BIN_NAME}${{ matrix.ext }}" -DestinationPath "${env:BIN_NAME}-${{ matrix.target }}.zip" -Force
 
-      # Upload packaged file to the GitHub Release for this tag
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: ${{ env.BIN_NAME }}-${{ matrix.target }}
+          path: |
             *.tar.gz
             *.zip
+          if-no-files-found: error
+
+  release:
+    name: create draft release + upload assets + publish
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      # 1) Create/keep as DRAFT while uploading assets
+      - name: Upload assets to draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            dist/**/*.tar.gz
+            dist/**/*.zip
