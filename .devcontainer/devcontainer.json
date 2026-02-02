@@ -13,7 +13,13 @@
     "SHELL": "/bin/bash"
   },
   "mounts": [
-    "source=${localEnv:HOME}/.ssh/git_sign.pub,target=${localEnv:HOME}/.ssh/git_sign.pub,type=bind,readonly"
+    "source=${localEnv:HOME}/.ssh,target=${localEnv:HOME}/.ssh,type=bind,readonly",
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+  ],
+  "runArgs": [
+    "-e", "DISPLAY=unix${localEnv:DISPLAY}",
+    "-e", "XAUTHORITY=${localEnv:XAUTHORITY}",
+    "-v", "${localEnv:HOME}/.Xauthority:/tmp/.Xauthority:ro"
   ],
   "customizations": {
     "vscode": {

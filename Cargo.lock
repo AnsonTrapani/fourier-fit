@@ -1325,6 +1325,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
 
 [[package]]
+name = "ffit"
+version = "0.1.0"
+dependencies = [
+ "accelerate-src",
+ "chrono",
+ "directories 6.0.0",
+ "iced",
+ "iced_aw",
+ "ndarray 0.17.2",
+ "ndarray-linalg",
+ "num-complex",
+ "rustfft",
+ "sci-rs",
+ "scirs2",
+ "serde_json",
+]
+
+[[package]]
 name = "filetime"
 version = "0.2.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1457,24 +1475,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
 dependencies = [
  "percent-encoding",
-]
-
-[[package]]
-name = "fourier-fit"
-version = "0.1.0"
-dependencies = [
- "accelerate-src",
- "chrono",
- "directories 6.0.0",
- "iced",
- "iced_aw",
- "ndarray 0.17.2",
- "ndarray-linalg",
- "num-complex",
- "rustfft",
- "sci-rs",
- "scirs2",
- "serde_json",
 ]
 
 [[package]]
