@@ -6,6 +6,7 @@ on:
 
 jobs:
   build:
+    name: build (${{ matrix.target }})
     strategy:
       fail-fast: false
       matrix:
@@ -29,17 +30,13 @@ jobs:
             target: aarch64-apple-darwin
 
     runs-on: ${{ matrix.runs_on }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/actions/rust-build
         with:
-          targets: ${{ matrix.target }}
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Build
-        run: |
-          # Build
-          cargo build --locked --release --target ${{ matrix.target }}
+          target: ${{ matrix.target }}
+          bin_name: ffit
+          release: "true"
+          package: "false"
+          upload_artifact: "false"
