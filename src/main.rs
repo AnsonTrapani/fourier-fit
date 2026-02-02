@@ -1,7 +1,7 @@
-use fourier_fit::logic;
-use fourier_fit::structures::data_modal;
-use fourier_fit::views;
-use fourier_fit::*;
+use ffit::logic;
+use ffit::structures::data_modal;
+use ffit::views;
+use ffit::*;
 use iced::widget::Canvas;
 use iced::widget::canvas::Cache;
 use iced::{
