@@ -1,4 +1,6 @@
 # Fourier Fit
+## About
+
 ## Development Notes
 Developing for this repository is recommended to be done in a devcontainer. To so do, ensure that `docker` is installed, and an ssh agent is running. For more information, visit the [credential sharing page](https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials). However, this can be broken into specific steps that are highly important to ensure seamless development.
 
