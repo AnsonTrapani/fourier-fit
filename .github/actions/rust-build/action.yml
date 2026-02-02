@@ -1,0 +1,76 @@
+name: "Rust build (optional package)"
+description: "Build a Rust binary for a target; optionally package and upload artifact."
+
+inputs:
+  target:
+    description: "Rust target triple"
+    required: true
+  bin_name:
+    description: "Binary name"
+    required: true
+  ext:
+    description: "Binary extension (e.g. .exe)"
+    required: false
+    default: ""
+  release:
+    description: "Build in --release mode"
+    required: false
+    default: "true"
+  package:
+    description: "Whether to package the output (zip on Windows, tar.gz elsewhere)"
+    required: false
+    default: "false"
+  upload_artifact:
+    description: "Whether to upload the package as a workflow artifact"
+    required: false
+    default: "false"
+  artifact_name:
+    description: "Artifact name (required if upload_artifact=true)"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ inputs.target }}
+
+    - uses: Swatinem/rust-cache@v2
+
+    - name: Build
+      shell: bash
+      run: |
+        set -eux
+        mode="--release"
+        if [ "${{ inputs.release }}" != "true" ]; then
+          mode=""
+        fi
+        cargo build --locked $mode --target "${{ inputs.target }}"
+
+    - name: Package (unix)
+      if: ${{ inputs.package == 'true' && runner.os != 'Windows' }}
+      shell: bash
+      run: |
+        set -eux
+        mkdir -p dist
+        cp "target/${{ inputs.target }}/release/${{ inputs.bin_name }}${{ inputs.ext }}" "dist/"
+        tar -czf "${{ inputs.bin_name }}-${{ inputs.target }}.tar.gz" -C dist "${{ inputs.bin_name }}${{ inputs.ext }}"
+
+    - name: Package (windows)
+      if: ${{ inputs.package == 'true' && runner.os == 'Windows' }}
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force dist | Out-Null
+        Copy-Item "target\${{ inputs.target }}\release\${{ inputs.bin_name }}${{ inputs.ext }}" "dist\"
+        Compress-Archive -Path "dist\${{ inputs.bin_name }}${{ inputs.ext }}" -DestinationPath "${{ inputs.bin_name }}-${{ inputs.target }}.zip" -Force
+
+    - name: Upload workflow artifact
+      if: ${{ inputs.upload_artifact == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: |
+          *.tar.gz
+          *.zip
+        if-no-files-found: error

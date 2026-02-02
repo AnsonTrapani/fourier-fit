@@ -42,40 +42,34 @@ jobs:
             ext: ""
 
     runs-on: ${{ matrix.runs_on }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: ./.github/actions/rust-build
         with:
-          targets: ${{ matrix.target }}
+          target: ${{ matrix.target }}
+          bin_name: ${{ env.BIN_NAME }}
+          ext: ${{ matrix.ext }}
+          release: "true"
+          package: "true"
+          upload_artifact: "true"
+          artifact_name: ${{ env.BIN_NAME }}-${{ matrix.target }}
 
-      - uses: Swatinem/rust-cache@v2
+  release:
+    name: Upload artifacts to draft release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
-      - name: Build (release)
-        run: cargo build --locked --release --target ${{ matrix.target }}
-
-      # Package artifact (zip on Windows, tar.gz elsewhere)
-      - name: Package (unix)
-        if: runner.os != 'Windows'
-        run: |
-          set -eux
-          mkdir -p dist
-          cp "target/${{ matrix.target }}/release/${BIN_NAME}${{ matrix.ext }}" "dist/"
-          tar -czf "${BIN_NAME}-${{ matrix.target }}.tar.gz" -C dist "${BIN_NAME}${{ matrix.ext }}"
-
-      - name: Package (windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item "target\${{ matrix.target }}\release\${env:BIN_NAME}${{ matrix.ext }}" "dist\"
-          Compress-Archive -Path "dist\${env:BIN_NAME}${{ matrix.ext }}" -DestinationPath "${env:BIN_NAME}-${{ matrix.target }}.zip" -Force
-
-      # Upload packaged file to the GitHub Release for this tag
-      - name: Upload to Release
+      - name: Upload assets to draft release
         uses: softprops/action-gh-release@v2
         with:
+          draft: true
           files: |
-            *.tar.gz
-            *.zip
+            dist/**/*.tar.gz
+            dist/**/*.zip
